@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:smartchef/page/dang_nhap.dart';
+import 'package:smartchef/page/man_hinh_dang_nhap.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

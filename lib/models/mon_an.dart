@@ -8,6 +8,7 @@ class MonAn {
   final String hinhAnh;
   final String loai;
   final List<String> dsNguyenLieu;
+  final bool isFavorite;
 
   MonAn({
     required this.id,
@@ -19,6 +20,7 @@ class MonAn {
     required this.hinhAnh,
     required this.loai,
     required this.dsNguyenLieu,
+    this.isFavorite = false,
   });
 
   factory MonAn.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class MonAn {
       dsNguyenLieu: json['nguyen_lieu'] != null
           ? List<String>.from(json['nguyen_lieu']) // Ép kiểu sang List String
           : [],
+          isFavorite: json['is_favorite'] ?? false,
     );
   }
 }
