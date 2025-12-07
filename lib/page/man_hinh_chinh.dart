@@ -115,277 +115,94 @@ class _HomeContentState extends State<HomeContent> {
 
 // Hàm mở camera và chụp ảnh nguyên liệu
 Future<void> _chupAnhNguyenLieu() async {
-  print("bắt đầu chụp ảnh nguyên liệu...");
+  print("Bắt đầu chụp ảnh nguyên liệu...");
   try {
     // Mở camera để chụp ảnh
-    print("Đang mở camera...");
     final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,  // Mở camera
-      maxWidth: 1024,  // Giới hạn kích thước ảnh
-      imageQuality: 85,  // Chất lượng ảnh (0-100)
+      source: ImageSource.camera,
+      maxWidth: 1024,
+      imageQuality: 85,
     );
     
     // Kiểm tra user có chụp ảnh không
-    print("Kết quả chụp: ${photo?.path ?? 'NULL'}");
     if (photo != null) {
       setState(() {
-        _imageFile = File(photo.path);  // Lưu file ảnh
+        _imageFile = File(photo.path);
       });
       
-      // Gửi ảnh lên server phân tích
-      print("gửi ảnh lên server phân tích...");
-      print("Đã chụp ảnh: ${photo.path}");
+      print("Đang gửi ảnh lên server...");
 
-      // Hiển thị dialog loading trong khi phân tích
+      // Hiển thị loading
+      LoadingDialog.show(context, message: "Đang phân tích nguyên liệu...");
+
+      // GỌI API CHỈ PHÂN TÍCH NGUYÊN LIỆU (KHÔNG LẤY MÓN)
+      var result = await ApiService.phanTichNguyenLieu(_imageFile!);
       
-      LoadingDialog.show(context, message: "Đang phân tích...");
-
-      // Gọi API phân tích nguyên liệu từ ảnh
-      print("Gọi API phân tích ảnh...");
-      var result = await ApiService.phanTichNguyenLieu(_imageFile!); // nhớ thêm service api phân tích ảnh sau đó import service api.dart ở đầu file
-      print("API đã trả về kết quả: $result");
-
-      // Ẩn dialog loading sau khi phân tích xong
+      // Ẩn loading
       LoadingDialog.hide(context);
-      print("Đã ẩn loading");
       
       // Kiểm tra kết quả
       if (result['success']) {
-        print("SUCCESS = true");
-        print("NGUYEN_LIEU: ${result['nguyen_lieu']}");
-        print("MON_AN: ${result['mon_an']}");
-        print("SO_NGUYEN_LIEU_MOI: ${result['so_nguyen_lieu_moi']}");
+        List nguyen_lieu = result['nguyen_lieu'] ?? [];
+        int so_nguyen_lieu_moi = result['so_nguyen_lieu_moi'] ?? 0;
         
-        print("Đang mở Bottom Sheet...");
-        // Thành công thì Hiển thị kết quả
-        _hienThiKetQuaPhanTich(result);
-      } else {
-        // Thất bại thì Hiển thị lỗi
-        print("API trả về success = false");
-        print("Message: ${result['message']}");
+        print("Phân tích thành công! Tìm thấy ${nguyen_lieu.length} nguyên liệu");
+        
+        // THÊM NGUYÊN LIỆU VÀO DANH SÁCH CHIPS
+        setState(() {
+          for (var item in nguyen_lieu) {
+            String tenNguyenLieu = item['ten'];
+            // Kiểm tra trùng lặp
+            if (!_selectedIngredients.contains(tenNguyenLieu)) {
+              _selectedIngredients.add(tenNguyenLieu);
+            }
+          }
+        });
+        
+        // Hiển thị thông báo
+        String message = "Đã thêm ${nguyen_lieu.length} nguyên liệu!";
+        if (so_nguyen_lieu_moi > 0) {
+          message += "\n$so_nguyen_lieu_moi nguyên liệu mới đã được lưu vào hệ thống.";
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? 'Phân tích thất bại')),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+      } else {
+        // Thất bại
+        print("Phân tích thất bại: ${result['message']}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Phân tích thất bại'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
 
     } else {
-      // User hủy chụp ảnh
       print("User đã hủy chụp ảnh");
     }
   } catch (e) {
-    // Lỗi khi mở camera
-
-    // Đóng dialog loading nếu đang mở
+    // Lỗi
     try {
       LoadingDialog.hide(context);
-    } catch (_) {
-      print("Không thể đóng loading dialog");
-    }
+    } catch (_) {}
     
-    //print("Lỗi khi mở camera: $e");
+    print("Lỗi: $e");
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Lỗi: $e")),
+      SnackBar(
+        content: Text("Lỗi: $e"),
+        backgroundColor: Colors.red,
+      ),
     );
   }
-
-  print("KẾT THÚC HÀM _chupAnhNguyenLieu");
 }
 
-// HÀM HIỂN THỊ KẾT QUẢ
-void _hienThiKetQuaPhanTich(Map<String, dynamic> result) {
-  List nguyen_lieu = result['nguyen_lieu'] ?? [];
-  List mon_an = result['mon_an'] ?? [];
-  int so_nguyen_lieu_moi = result['so_nguyen_lieu_moi'] ?? 0;
-  int so_mon_ai_gen = result['so_mon_ai_gen'] ?? 0;  // Thêm dòng này
-  
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) => DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.9,
-      expand: false,
-      builder: (context, scrollController) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            const Text(
-              'Kết quả phân tích AI',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 15),
-            
-            // ✨ WRAP TOÀN BỘ NỘI DUNG TRONG Expanded + SingleChildScrollView
-            Expanded(
-              child: SingleChildScrollView(
-                controller: scrollController,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nguyên liệu
-                    Text(
-                      '🥕 Nguyên liệu (${nguyen_lieu.length}):',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 10),
-                    
-                    // ✨ GIỚI HẠN CHIỀU CAO CHO WRAP
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 150),
-                      child: SingleChildScrollView(
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: nguyen_lieu.map((item) {
-                            bool isNew = item['la_moi'] == true;
-                            return Chip(
-                              label: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(item['ten']),
-                                  if (isNew) const Text(' ✨', style: TextStyle(fontSize: 12)),
-                                ],
-                              ),
-                              backgroundColor: isNew ? Colors.amber.shade100 : const Color(0xFFE8F5E9),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                    
-                    // Thông báo nguyên liệu mới
-                    if (so_nguyen_lieu_moi > 0) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '$so_nguyen_lieu_moi nguyên liệu mới đã được thêm!',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
-                            color: Colors.orange.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
-                    
-                    // Thông báo món AI (nếu có)
-                    if (so_mon_ai_gen > 0) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.purple.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.purple.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.auto_awesome, color: Colors.purple.shade600, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '$so_mon_ai_gen món được AI tạo đặc biệt cho bạn!✨',
-                                style: TextStyle(
-                                  color: Colors.purple.shade900,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    
-                    const SizedBox(height: 20),
-                    const Divider(),
-                    const SizedBox(height: 10),
-                    
-                    // Món ăn
-                    Text(
-                      '🍳 Món ăn gợi ý (${mon_an.length}):',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 10),
-                    
-                    // Danh sách món ăn
-                    mon_an.isEmpty
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(20),
-                              child: Text(
-                                'Không tìm thấy món ăn phù hợp',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: mon_an.length,
-                            itemBuilder: (context, index) {
-                              var mon = mon_an[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                elevation: 2,
-                                child: ListTile(
-                                  leading: const Icon(Icons.restaurant, color: Color(0xFF7CB342)),
-                                  title: Text(mon['tenMonAn']),
-                                  subtitle: Text('${mon['thoiGian']} phút • ${mon['calo']} kcal'),
-                                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                                  onTap: () async {
-                                    try {
-                                      final navigator = Navigator.of(context);
-                                      // Parse dữ liệu
-                                      final monAnData = MonAn.fromJson(mon);
-                                      
-                                      // Đóng Bottom Sheet VÀ CHỜ HOÀN THÀNH
-                                      Navigator.pop(context);
-
-                                      await Future.delayed(const Duration(milliseconds: 300));
-                                      
-                                      // Sau khi đóng xong, mở màn hình mới
-
-                                      await navigator.push(
-                                        MaterialPageRoute(
-                                          builder: (ctx) => ChiTietMonAn(
-                                            monAn: monAnData,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                    catch (e) {
-                                      print("Lỗi khi mở chi tiết món ăn: $e");
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text("Lỗi khi mở chi tiết món ăn: $e")),
-                                      );
-                                    }
-                                  },
-                                )
-                              );
-                            },
-                          ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
 
   @override
   void dispose() {
