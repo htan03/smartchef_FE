@@ -52,5 +52,3 @@ app.*.map.json
 
 .flutter-plugins
 .flutter-plugins-dependencies
-
-lib/api_config.dart

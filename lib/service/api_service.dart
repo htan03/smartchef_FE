@@ -4,6 +4,7 @@ import 'package:smartchef/config/api_config.dart'; // File chứa IP máy
 import '../models/mon_an.dart';
 import 'dart:io'; // Dùng để làm việc với File
 import 'package:http_parser/http_parser.dart'; // Dùng để định nghĩa kiểu file khi upload (trên điẹn thoại Android)
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Hàm lấy danh sách món ăn

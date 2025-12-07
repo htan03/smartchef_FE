@@ -9,6 +9,12 @@ import '../models/mon_an.dart';
 import 'man_hinh_chi_tiet_mon_an.dart'; // màn hình chi tiết món ăn
 
 
+import '../page/man_hinh_chi_tiet_mon_an.dart';
+import '../service/api_service.dart'; 
+import '../models/mon_an.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../page/man_hinh_dang_nhap.dart';
+import '../page/man_hinh_ho_so.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,31 +24,26 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // 1. Biến quản lý tab đang chọn (0: Trang chủ, 1: Món ăn, 2: Cài đặt)
   int _selectedIndex = 0;
-
-  // 2. Danh sách các màn hình tương ứng
-  final List<Widget> _screens = [
-    const HomeContent(),    // Màn hình 0: Giao diện Trang chủ
-    const ListMonAn(        // Màn hình 1: Danh sách yêu thích (Cố định)
-      title: "Món ăn Yêu Thích",
-      isFavoriteMode: true,
-    ),    
-    const Center(child: Text("Màn hình Cài đặt")), // Màn hình 2: Demo
-  ];  
 
   @override
   Widget build(BuildContext context) {
     final primaryGreen = const Color(0xFF7CB342);
 
-    return Scaffold(
-      // 3. BODY: Thay đổi linh hoạt dựa theo _selectedIndex
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
+    final List<Widget> screens = [
+      const HomeContent(),
+      // Màn hình Yêu thích: Mỗi lần build lại sẽ gọi lại API fetchMyFavorites
+      const ListMonAn(
+        key: ValueKey("FavoriteList"),
+        title: "Món ăn Yêu Thích",
+        isFavoriteMode: true,
       ),
+      const Center(child: Text("Màn hình Cài đặt")),
+    ];
 
-      // 4. BOTTOM NAVIGATION BAR
+    return Scaffold(
+      body: screens[_selectedIndex],
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -57,25 +58,16 @@ class _HomePageState extends State<HomePage> {
         elevation: 10,
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: "Trang chủ",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border),
-            label: "Yêu thích",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: "Cài đặt",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: "Trang chủ"),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: "Yêu thích"),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Cài đặt"),
         ],
       ),
     );
   }
 }
 
-// GIAO DIỆN TRANG CHỦ
+// --- GIAO DIỆN TRANG CHỦ  ---
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
@@ -84,11 +76,44 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
-  // 1. Controller để quản lý văn bản trong ô nhập
   final TextEditingController _controller = TextEditingController();
-  
-  // 2. Danh sách lưu các nguyên liệu người dùng đã nhập
   final List<String> _selectedIngredients = [];
+  List<MonAn> _topRecipes = [];
+  bool _isLoadingTop = true;
+
+  // 1. Biến lưu tên người dùng, mặc định là "Bạn"
+  String _username = "User";
+
+  @override
+  void initState() {
+    super.initState();
+    // 2. Gọi API lấy tên ngay khi mở màn hình
+    _loadUserProfile();
+    _loadTopRecipes();
+  }
+
+  Future<void> _loadTopRecipes() async {
+    List<MonAn> data = await ApiService.fetchTopMonAn();
+    if (mounted) {
+      setState(() {
+        _topRecipes = data;
+        _isLoadingTop = false;
+      });
+    }
+  }
+
+  // Hàm gọi API lấy thông tin user
+  Future<void> _loadUserProfile() async {
+    // Gọi hàm fetchProfile mà chúng ta đã viết trong ApiService
+    final profileData = await ApiService.fetchProfile();
+    
+    if (profileData != null && mounted) {
+      setState(() {
+        // Lấy trường 'username' từ JSON trả về
+        _username = profileData['username'] ?? "User";
+      });
+    }
+  }
 
   // THÊM 2 BIẾN MỚI ĐỂ CHỤP ẢNH
   final ImagePicker _picker = ImagePicker();  // thêm công cụ chụp ảnh
@@ -98,15 +123,12 @@ class _HomeContentState extends State<HomeContent> {
   void _addIngredient(String value) {
     if (value.trim().isNotEmpty) {
       setState(() {
-        // Thêm vào danh sách và xóa khoảng trắng thừa
         _selectedIngredients.add(value.trim()); 
-        // Xóa chữ trong ô nhập để nhập món tiếp theo
         _controller.clear(); 
       });
     }
   }
 
-  // Hàm xóa nguyên liệu
   void _removeIngredient(String value) {
     setState(() {
       _selectedIngredients.remove(value);
@@ -223,7 +245,7 @@ Future<void> _chupAnhNguyenLieu() async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. HEADER (Giữ nguyên)
+              // 1. HEADER
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -232,16 +254,65 @@ Future<void> _chupAnhNguyenLieu() async {
                     children: [
                       Text("Chào buổi sáng,",
                           style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-                      const Text("htan",
-                          style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87)),
+                      
+                      // 3. HIỂN THỊ TÊN USER ĐỘNG
+                      Text(
+                        _username,
+                        style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87),
+                      ),
                     ],
                   ),
-                  CircleAvatar(
-                    backgroundColor: primaryGreen,
-                    child: const Icon(Icons.person, color: Colors.white),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'profile') {
+                        // Chuyển sang màn hình hồ sơ
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ProfilePage()),
+                        );
+                      } else if (value == 'logout') {
+                        // Xử lý đăng xuất nhanh (nếu muốn)
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.remove('user_token');
+                        if (mounted) {
+                           Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                            (route) => false,
+                          );
+                        }
+                      }
+                    },
+                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'profile',
+                        child: Row(
+                          children: [
+                            Icon(Icons.person, color: Colors.grey),
+                            SizedBox(width: 10),
+                            Text('Thông tin tài khoản'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout, color: Colors.red),
+                            SizedBox(width: 10),
+                            Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    // Phần hiển thị nút bấm chính là Avatar cũ
+                    child: CircleAvatar(
+                      backgroundColor: primaryGreen,
+                      child: const Icon(Icons.person, color: Colors.white),
+                    ),
                   )
                 ],
               ),
@@ -257,7 +328,7 @@ Future<void> _chupAnhNguyenLieu() async {
 
               const SizedBox(height: 15),
 
-              // 3. THANH TÌM KIẾM & NHẬP LIỆU [ĐÃ SỬA]
+              // 3. THANH TÌM KIẾM
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 decoration: BoxDecoration(
@@ -270,7 +341,6 @@ Future<void> _chupAnhNguyenLieu() async {
                 ),
                 child: TextField(
                   controller: _controller,
-                  // Sự kiện khi nhấn Enter trên bàn phím
                   onSubmitted: (value) => _addIngredient(value),
                   decoration: InputDecoration(
                     hintText: "Nhập nguyên liệu rồi nhấn Enter...",
@@ -294,8 +364,7 @@ Future<void> _chupAnhNguyenLieu() async {
 
               const SizedBox(height: 15),
 
-              // 4. KHU VỰC HIỂN THỊ CHIPS [ĐÃ SỬA]
-              // Nếu danh sách rỗng thì hiện text gợi ý, ngược lại hiện Chips
+              // 4. CHIPS NGUYÊN LIỆU
               _selectedIngredients.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.only(left: 5),
@@ -305,8 +374,8 @@ Future<void> _chupAnhNguyenLieu() async {
                       ),
                     )
                   : Wrap(
-                      spacing: 8.0, // Khoảng cách ngang giữa các chip
-                      runSpacing: 4.0, // Khoảng cách dọc giữa các dòng
+                      spacing: 8.0,
+                      runSpacing: 4.0,
                       children: _selectedIngredients.map((ingredient) {
                         return Chip(
                           label: Text(
@@ -316,7 +385,6 @@ Future<void> _chupAnhNguyenLieu() async {
                           backgroundColor: Colors.white,
                           side: BorderSide(color: primaryGreen.withOpacity(0.5)),
                           shape: const StadiumBorder(),
-                          // Nút xóa (X) trên Chip
                           deleteIcon: const Icon(Icons.close, size: 18, color: Colors.redAccent),
                           onDeleted: () => _removeIngredient(ingredient),
                         );
@@ -325,7 +393,7 @@ Future<void> _chupAnhNguyenLieu() async {
 
               const SizedBox(height: 30),
 
-              // 5. BANNER & NÚT GỢI Ý [ĐÃ SỬA LOGIC NÚT]
+              // 5. BANNER GỢI Ý
               Container(
                 width: double.infinity,
                 height: 150,
@@ -354,21 +422,17 @@ Future<void> _chupAnhNguyenLieu() async {
                           const SizedBox(height: 10),
                           ElevatedButton(
                             onPressed: () {
-                              // Kiểm tra nếu chưa nhập gì thì báo lỗi nhẹ hoặc không làm gì
                               if (_selectedIngredients.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text("Hãy nhập ít nhất 1 nguyên liệu!")),
                                 );
                                 return;
                               }
-
-                              // Chuyển sang màn hình List và GỬI DANH SÁCH đi
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => ListMonAn(
                                     title: "Gợi ý món ăn",
-                                    // Truyền danh sách nguyên liệu sang bên kia
                                     inputIngredients: _selectedIngredients,
                                     isFavoriteMode: false,
                                   ),
@@ -391,7 +455,7 @@ Future<void> _chupAnhNguyenLieu() async {
 
               const SizedBox(height: 30),
 
-              // 6. DANH MỤC (Giữ nguyên code cũ của bạn)
+              // 6. DANH MỤC
               const Text("Thực đơn theo bữa",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
@@ -399,24 +463,130 @@ Future<void> _chupAnhNguyenLieu() async {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildCategoryCard("Sáng", Icons.wb_twilight, Colors.orangeAccent, () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => const ListMonAn(loaiMon: 'sang', title: "Món ăn Sáng")));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ListMonAn(loaiMon: 'sang', title: "Món ăn Sáng")));
                   }),
                   _buildCategoryCard("Trưa", Icons.wb_sunny, Colors.redAccent, () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => const ListMonAn(loaiMon: 'trua', title: "Món ăn Trưa")));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ListMonAn(loaiMon: 'trua', title: "Món ăn Trưa")));
                   }),
                   _buildCategoryCard("Tối", Icons.nights_stay, Colors.indigoAccent, () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => const ListMonAn(loaiMon: 'toi', title: "Món ăn Tối")));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ListMonAn(loaiMon: 'toi', title: "Món ăn Tối")));
                   }),
                 ],
               ),
+              const SizedBox(height: 30),
+              // MÓN ĂN NỔI BẬT
+              Row(
+                children: [
+                  const Text("Món ăn nổi bật",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                ],
+              ),
+              const SizedBox(height: 15),
+
+              // List Ngang
+              SizedBox(
+                height: 220, // Chiều cao cố định cho list ngang
+                child: _isLoadingTop
+                    ? Center(child: CircularProgressIndicator(color: primaryGreen))
+                    : _topRecipes.isEmpty
+                        ? const Center(child: Text("Chưa có dữ liệu nổi bật"))
+                        : ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _topRecipes.length,
+                            itemBuilder: (context, index) {
+                              final monAn = _topRecipes[index];
+                              return GestureDetector(
+                                onTap: () {
+                                   // Chuyển sang chi tiết
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ChiTietMonAn(monAn: monAn),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 160, // Chiều rộng mỗi thẻ
+                                  margin: const EdgeInsets.only(right: 15),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(15),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 5,
+                                          offset: Offset(0, 2))
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Ảnh
+                                      ClipRRect(
+                                        borderRadius: const BorderRadius.vertical(
+                                            top: Radius.circular(15)),
+                                        child: Image.network(
+                                          monAn.hinhAnh.isNotEmpty
+                                              ? monAn.hinhAnh
+                                              : 'https://via.placeholder.com/150',
+                                          height: 120,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (ctx, err, stack) => Container(
+                                              height: 120,
+                                              color: Colors.grey[200],
+                                              child: const Icon(Icons.image)),
+                                        ),
+                                      ),
+                                      // Tên & Info
+                                      Padding(
+                                        padding: const EdgeInsets.all(10),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              monAn.tenMonAn,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16),
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.local_fire_department,
+                                                    size: 14, color: Colors.orange),
+                                                const SizedBox(width: 4),
+                                                Text("${monAn.calo} Kcal",
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey[600])),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+              
+              // Khoảng trống dưới cùng
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
     );
   }
+  }
 
-  // Widget con giữ nguyên
   Widget _buildCategoryCard(String title, IconData icon, Color iconColor, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -443,5 +613,4 @@ Future<void> _chupAnhNguyenLieu() async {
         ),
       ),
     );
-  }
 }
