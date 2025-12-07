@@ -196,6 +196,7 @@ void _hienThiKetQuaPhanTich(Map<String, dynamic> result) {
   List nguyen_lieu = result['nguyen_lieu'] ?? [];
   List mon_an = result['mon_an'] ?? [];
   int so_nguyen_lieu_moi = result['so_nguyen_lieu_moi'] ?? 0;
+  int so_mon_ai_gen = result['so_mon_ai_gen'] ?? 0;  // Thêm dòng này
   
   showModalBottomSheet(
     context: context,
@@ -203,91 +204,184 @@ void _hienThiKetQuaPhanTich(Map<String, dynamic> result) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (context) => Container(
-      padding: const EdgeInsets.all(20),
-      height: MediaQuery.of(context).size.height * 0.7,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Kết quả phân tích AI',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 15),
-          
-          // Nguyên liệu
-          Text(
-            'Nguyên liệu (${nguyen_lieu.length}):',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: nguyen_lieu.map((item) {
-              bool isNew = item['la_moi'] == true;
-              return Chip(
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(item['ten']),
-                    if (isNew) const Text(' ✨', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-                backgroundColor: isNew ? Colors.amber.shade100 : const Color(0xFFE8F5E9),
-              );
-            }).toList(),
-          ),
-          
-          if (so_nguyen_lieu_moi > 0) ...[
-            const SizedBox(height: 10),
-            Text(
-              '$so_nguyen_lieu_moi nguyên liệu mới đã được thêm!',
-              style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.orange),
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            const Text(
+              'Kết quả phân tích AI',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-          ],
-          
-          const SizedBox(height: 20),
-          const Divider(),
-          
-          // Món ăn
-          Text(
-            '🍳 Món ăn gợi ý (${mon_an.length}):',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 10),
-          
-          Expanded(
-            child: mon_an.isEmpty
-                ? const Center(child: Text('Không tìm thấy món ăn phù hợp'))
-                : ListView.builder(
-                    itemCount: mon_an.length,
-                    itemBuilder: (context, index) {
-                      var mon = mon_an[index];
-                      return ListTile(
-                        leading: const Icon(Icons.restaurant, color: Color(0xFF7CB342)),
-                        title: Text(mon['tenMonAn']),
-                        subtitle: Text('${mon['thoiGian']} phút • ${mon['calo']} kcal'),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {
-                          // Đóng Bottom Sheet
-                          Navigator.pop(context);
-
-                          //chuyển sang màn hình chi tiết món ăn
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChiTietMonAn(
-                                monAn: MonAn.fromJson(mon),
+            const SizedBox(height: 15),
+            
+            // ✨ WRAP TOÀN BỘ NỘI DUNG TRONG Expanded + SingleChildScrollView
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nguyên liệu
+                    Text(
+                      '🥕 Nguyên liệu (${nguyen_lieu.length}):',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    // ✨ GIỚI HẠN CHIỀU CAO CHO WRAP
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: nguyen_lieu.map((item) {
+                            bool isNew = item['la_moi'] == true;
+                            return Chip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(item['ten']),
+                                  if (isNew) const Text(' ✨', style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                              backgroundColor: isNew ? Colors.amber.shade100 : const Color(0xFFE8F5E9),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    
+                    // Thông báo nguyên liệu mới
+                    if (so_nguyen_lieu_moi > 0) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '$so_nguyen_lieu_moi nguyên liệu mới đã được thêm!',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                    
+                    // Thông báo món AI (nếu có)
+                    if (so_mon_ai_gen > 0) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.purple.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.auto_awesome, color: Colors.purple.shade600, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '$so_mon_ai_gen món được AI tạo đặc biệt cho bạn!✨',
+                                style: TextStyle(
+                                  color: Colors.purple.shade900,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
+                          ],
+                        ),
+                      ),
+                    ],
+                    
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    
+                    // Món ăn
+                    Text(
+                      '🍳 Món ăn gợi ý (${mon_an.length}):',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    // Danh sách món ăn
+                    mon_an.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text(
+                                'Không tìm thấy món ăn phù hợp',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: mon_an.length,
+                            itemBuilder: (context, index) {
+                              var mon = mon_an[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                elevation: 2,
+                                child: ListTile(
+                                  leading: const Icon(Icons.restaurant, color: Color(0xFF7CB342)),
+                                  title: Text(mon['tenMonAn']),
+                                  subtitle: Text('${mon['thoiGian']} phút • ${mon['calo']} kcal'),
+                                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                                  onTap: () async {
+                                    try {
+                                      final navigator = Navigator.of(context);
+                                      // Parse dữ liệu
+                                      final monAnData = MonAn.fromJson(mon);
+                                      
+                                      // Đóng Bottom Sheet VÀ CHỜ HOÀN THÀNH
+                                      Navigator.pop(context);
+
+                                      await Future.delayed(const Duration(milliseconds: 300));
+                                      
+                                      // Sau khi đóng xong, mở màn hình mới
+
+                                      await navigator.push(
+                                        MaterialPageRoute(
+                                          builder: (ctx) => ChiTietMonAn(
+                                            monAn: monAnData,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    catch (e) {
+                                      print("Lỗi khi mở chi tiết món ăn: $e");
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text("Lỗi khi mở chi tiết món ăn: $e")),
+                                      );
+                                    }
+                                  },
+                                )
+                              );
+                            },
+                          ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
