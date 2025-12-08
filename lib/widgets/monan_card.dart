@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/mon_an.dart';
-import '../utils/constants.dart';
 
 class MonAnCard extends StatelessWidget {
   final MonAn monAn;
@@ -17,67 +16,151 @@ class MonAnCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        // THÊM MARGIN DƯỚI ĐỂ TẠO KHOẢNG CÁCH GIỮA CÁC THẺ
-        margin: const EdgeInsets.only(bottom: 20), 
+        margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 8), // Cách đều các bên
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20), // Bo góc mềm mại
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 0,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.grey.withOpacity(0.15), // Bóng mờ nhẹ
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HINH ANH
-            _buildImage(),
-            
-            // NOI DUNG
+            // --- PHẦN ẢNH VÀ BADGE ---
+            Stack(
+              children: [
+                // Ảnh nền
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: Image.network(
+                    monAn.hinhAnh.isNotEmpty
+                        ? monAn.hinhAnh
+                        : 'https://via.placeholder.com/400x200', // Ảnh placeholder nếu lỗi
+                    height: 180, // Chiều cao ảnh
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 180,
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.restaurant, color: Colors.grey, size: 50),
+                      );
+                    },
+                  ),
+                ),
+
+                // Badge Thời gian (Góc trái trên)
+                Positioned(
+                  top: 15,
+                  left: 15,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 4)
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.access_time_filled, size: 14, color: Colors.orange),
+                        const SizedBox(width: 5),
+                        Text(
+                          "${monAn.thoiGian} phút",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // --- ICON TRÁI TIM ---
+                // Chỉ hiện khi món ăn ĐÃ ĐƯỢC THÍCH (isFavorite == true)
+                if (monAn.isFavorite)
+                  Positioned(
+                    top: 15,
+                    right: 15,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black12, blurRadius: 4)
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.favorite, 
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            // --- PHẦN THÔNG TIN ---
             Padding(
-              padding: const EdgeInsets.all(16), // Tăng padding nội dung lên chút cho thoáng
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // TEN MON AN
+                  // Tên món ăn
                   Text(
                     monAn.tenMonAn,
-                    style: const TextStyle(
-                      fontSize: 18, // Font to hơn vì thẻ giờ rộng hơn
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      height: 1.3,
+                    ),
                   ),
                   
-                  const SizedBox(height: 12), // Tăng khoảng cách
+                  const SizedBox(height: 10),
                   
-                  // Row chứa Thời gian và Calo nằm ngang
+                  // Dòng Calo và Nút xem
                   Row(
                     children: [
-                      _buildInfoRow(
-                        Icons.access_time_rounded,
-                        '${monAn.thoiGian} phut',
-                        Colors.orange,
+                      // Icon Lửa
+                      const Icon(Icons.local_fire_department_rounded, size: 18, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Text(
+                        "${monAn.calo} Kcal",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
                       ),
-                      const SizedBox(width: 24), // Khoảng cách giữa 2 info
-                      _buildInfoRow(
-                        Icons.local_fire_department_rounded,
-                        '${monAn.calo} Kcal',
-                        Colors.redAccent,
+                      
+                      const Spacer(),
+                      
+                      // Nút "Xem ngay" 
+                      Text(
+                        "Xem ngay",
+                        style: TextStyle(
+                          color: const Color(0xFF7CB342), 
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF7CB342))
                     ],
                   ),
-                  
-                  const SizedBox(height: 16), // Tăng khoảng cách tới nút
-                  
-                  // NUT XEM CHI TIET
-                  _buildDetailButton(),
                 ],
               ),
             ),
@@ -85,109 +168,5 @@ class MonAnCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _buildImage() {
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          child: Image.network(
-            monAn.hinhAnh,
-            width: double.infinity,
-            height: 180, // Tăng chiều cao ảnh lên vì thẻ 1 cột rất rộng
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: double.infinity,
-                height: 180,
-                color: Colors.grey[200],
-                child: Icon(Icons.broken_image, color: Colors.grey[400], size: 40),
-              );
-            },
-          ),
-        ),
-        Positioned(
-          top: 12,
-          right: 12,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _getLoaiColor(),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                )
-              ],
-            ),
-            child: Text(
-              _getLoaiText(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String text, Color iconColor) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: iconColor),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[700],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDetailButton() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.primaryGreen.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Center(
-        child: Text(
-          'Xem chi tiet',
-          style: TextStyle(
-            color: AppColors.primaryGreen,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _getLoaiColor() {
-    switch (monAn.loai.toLowerCase()) {
-      case 'sang': return Colors.orange;
-      case 'trua': return Colors.blue;
-      case 'toi': return Colors.purple;
-      default: return Colors.grey;
-    }
-  }
-
-  String _getLoaiText() {
-    return monAn.loai.toUpperCase();
   }
 }
