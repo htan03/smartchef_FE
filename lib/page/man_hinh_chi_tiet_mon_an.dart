@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/mon_an.dart';
 import '../service/api_service.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 
 class ChiTietMonAn extends StatefulWidget {
   final MonAn? monAn;
@@ -169,7 +170,7 @@ class _ChiTietMonAnState extends State<ChiTietMonAn> {
                         Container(
                           width: double.infinity, padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))]),
-                          child: Text(displayData.chiTiet, style: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.6)),
+                          child: HtmlWidget(displayData.chiTiet, textStyle: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.6)),
                         ),
                       ],
                     ),

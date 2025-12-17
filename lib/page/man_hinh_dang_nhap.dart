@@ -187,11 +187,14 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: Text("Đăng ký", style: TextStyle(color: linkColor, fontWeight: FontWeight.bold)),
                         ),
-                        const SizedBox(height: 5),
-                        GestureDetector(
-                          onTap: () {},
-                          child: Text("Quên mật khẩu?", style: TextStyle(color: linkColor)),
-                        ),
+                        
+                        // Chức năng quên mật khẩu sẽ phát triển sau
+
+                        // const SizedBox(height: 5),
+                        // GestureDetector(
+                        //   onTap: () {},
+                        //   child: Text("Quên mật khẩu?", style: TextStyle(color: linkColor)),
+                        // ),
                       ],
                     ),
 

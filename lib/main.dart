@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:smartchef/page/man_hinh_dang_nhap.dart';
-import 'page/man_hinh_chinh.dart';
 void main() {
   runApp(const MyApp());
 }
