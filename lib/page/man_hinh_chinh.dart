@@ -9,6 +9,7 @@ import '../models/mon_an.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../page/man_hinh_dang_nhap.dart';
 import '../page/man_hinh_ho_so.dart';
+import '../page/man_hinh_list_blog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -32,7 +33,7 @@ class _HomePageState extends State<HomePage> {
         title: "Món ăn Yêu Thích",
         isFavoriteMode: true,
       ),
-      //const Center(child: Text("Màn hình Cài đặt")),
+      const BlogFeedScreen(),
     ];
 
     return Scaffold(
@@ -60,7 +61,11 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.favorite_border),
             label: "Yêu thích",
           ),
-          //BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Cài đặt"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.article_outlined),
+            activeIcon: Icon(Icons.article),
+            label: "Góc Bếp",
+    ),
         ],
       ),
     );

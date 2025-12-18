@@ -2,6 +2,9 @@ import 'dart:convert'; // Dùng để giải mã JSON
 import 'package:http/http.dart' as http; // Thư viện kết nối mạng
 import 'package:smartchef/config/api_config.dart'; // File chứa IP máy
 import '../models/mon_an.dart';
+import '../models/danh_muc.dart';
+import '../models/blog.dart';
+import '../models/thongbao.dart';
 import 'dart:io'; // Dùng để làm việc với File
 import 'package:http_parser/http_parser.dart'; // Dùng để định nghĩa kiểu file khi upload (trên điẹn thoại Android)
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,14 +14,14 @@ class ApiService {
   static Future<List<MonAn>> fetchMonAn({String? loai}) async {
     final String path = loai != null ? '/api/mon-an/$loai/' : '/api/mon-an/';
     final url = Uri.parse('${ApiConfig.baseUrl}$path');
-    
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('user_token');
 
     Map<String, String> headers = {
-      "Content-Type": "application/json; charset=UTF-8"
+      "Content-Type": "application/json; charset=UTF-8",
     };
-    
+
     // Nếu đã đăng nhập, GỬI KÈM TOKEN để Backend check is_favorite
     if (token != null) {
       headers["Authorization"] = "Bearer $token";
@@ -39,16 +42,19 @@ class ApiService {
       throw Exception("Không thể kết nối đến máy chủ");
     }
   }
+
   // Hàm gọi API Gợi ý món ăn
   static Future<List<MonAn>> fetchGoiY(List<String> ingredients) async {
-    final queryString = ingredients.join(","); 
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/goi-y/?nguyen_lieu=$queryString');
+    final queryString = ingredients.join(",");
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/mon-an/goi-y/?nguyen_lieu=$queryString',
+    );
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('user_token');
 
     Map<String, String> headers = {
-      "Content-Type": "application/json; charset=UTF-8"
+      "Content-Type": "application/json; charset=UTF-8",
     };
 
     if (token != null) {
@@ -56,7 +62,7 @@ class ApiService {
     }
 
     try {
-      final response = await http.get(url, headers: headers); 
+      final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         String bodyUtf8 = utf8.decode(response.bodyBytes);
@@ -74,53 +80,51 @@ class ApiService {
   // Phân tích ảnh bằng AI
   static Future<Map<String, dynamic>> phanTichNguyenLieu(File imageFile) async {
     final url = Uri.parse('${ApiConfig.baseUrl}/api/phan-tich-anh/');
-    
+
     try {
       print('Đang gửi ảnh lên server...');
-      
+
       // Tạo multipart request (để gửi file)
       var request = http.MultipartRequest('POST', url);
 
-      
       // Thêm file ảnh vào request
       request.files.add(
         await http.MultipartFile.fromPath(
-          'image', 
+          'image',
           imageFile.path,
           contentType: MediaType('image', 'jpeg'), // Định nghĩa kiểu file
-        )
+        ),
       );
-      
+
       // Gửi request
       var streamedResponse = await request.send();
-      
+
       // Đọc response
       var response = await http.Response.fromStream(streamedResponse);
-      
+
       print('Nhận response: ${response.statusCode}');
-      
+
       // Parse JSON
       String bodyUtf8 = utf8.decode(response.bodyBytes);
       Map<String, dynamic> result = json.decode(bodyUtf8);
-      
+
       return result;
     } catch (e) {
       print('Lỗi phân tích ảnh: $e');
-      return {
-        'success': false,
-        'message': 'Lỗi kết nối đến server'
-      };
+      return {'success': false, 'message': 'Lỗi kết nối đến server'};
     }
   }
 
-   // API yêu thích món ăn
+  // API yêu thích món ăn
   static Future<bool> toggleLike(int monAnId) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('user_token');
     if (token == null) return false;
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/yeu-thich/toggle/$monAnId/');
-    
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/yeu-thich/toggle/$monAnId/',
+    );
+
     try {
       final response = await http.post(
         url,
@@ -133,7 +137,8 @@ class ApiService {
       return false;
     }
   }
-  // Lấy danh sách yêu thích của người dùng 
+
+  // Lấy danh sách yêu thích của người dùng
   static Future<List<MonAn>> fetchMyFavorites() async {
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('user_token');
@@ -151,14 +156,16 @@ class ApiService {
         url,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer $token", 
+          "Authorization": "Bearer $token",
         },
       );
       if (response.statusCode == 200) {
         String bodyUtf8 = utf8.decode(response.bodyBytes);
         List<dynamic> listJson = json.decode(bodyUtf8);
-        List<MonAn> dsYeuThich = listJson.map((json) => MonAn.fromJson(json)).toList();
-        
+        List<MonAn> dsYeuThich = listJson
+            .map((json) => MonAn.fromJson(json))
+            .toList();
+
         print("Đã lấy được ${dsYeuThich.length} món yêu thích.");
         return dsYeuThich;
       } else {
@@ -171,20 +178,19 @@ class ApiService {
     }
   }
 
-
-  // API đăng nhập 
-  static Future<Map<String, dynamic>?> login(String username, String password) async {
+  // API đăng nhập
+  static Future<Map<String, dynamic>?> login(
+    String username,
+    String password,
+  ) async {
     final url = Uri.parse('${ApiConfig.baseUrl}/api/login/');
-    
+
     try {
       print("Đang đăng nhập: $url");
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "username": username,
-          "password": password,
-        }),
+        body: jsonEncode({"username": username, "password": password}),
       );
 
       if (response.statusCode == 200) {
@@ -193,7 +199,7 @@ class ApiService {
       } else {
         // Đăng nhập thất bại (Sai pass hoặc lỗi khác)
         print('Đăng nhập thất bại: ${response.statusCode} - ${response.body}');
-        return null; 
+        return null;
       }
     } catch (e) {
       print('Lỗi kết nối khi đăng nhập: $e');
@@ -202,9 +208,13 @@ class ApiService {
   }
 
   // API đăng ký tài khoản
-  static Future<String?> register(String username, String password, String email) async {
+  static Future<String?> register(
+    String username,
+    String password,
+    String email,
+  ) async {
     final url = Uri.parse('${ApiConfig.baseUrl}/api/register/');
-    
+
     try {
       final response = await http.post(
         url,
@@ -219,7 +229,7 @@ class ApiService {
       // 201 Created = Thành công
       if (response.statusCode == 201) {
         return null; // Không có lỗi -> Thành công
-      } 
+      }
       // 400 Bad Request = Lỗi nhập liệu (Trùng tên, sai email...)
       else if (response.statusCode == 400) {
         String bodyUtf8 = utf8.decode(response.bodyBytes);
@@ -227,12 +237,12 @@ class ApiService {
 
         if (errors.containsKey('username')) {
           // Lấy dòng lỗi đầu tiên trong mảng
-          return errors['username'][0]; 
+          return errors['username'][0];
         }
         if (errors.containsKey('email')) {
           return errors['email'][0];
         }
-        
+
         return "Thông tin đăng ký không hợp lệ.";
       } else {
         return "Lỗi Server: ${response.statusCode}";
@@ -257,10 +267,7 @@ class ApiService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({
-          "old_password": oldPass,
-          "new_password": newPass,
-        }),
+        body: jsonEncode({"old_password": oldPass, "new_password": newPass}),
       );
 
       if (response.statusCode == 200) {
@@ -268,7 +275,7 @@ class ApiService {
       } else {
         String bodyUtf8 = utf8.decode(response.bodyBytes);
         final errorData = jsonDecode(bodyUtf8);
-        
+
         // Nếu lỗi do mật khẩu cũ sai
         if (errorData['old_password'] != null) {
           return errorData['old_password'][0];
@@ -290,7 +297,7 @@ class ApiService {
       if (token == null) return null; // Chưa đăng nhập
 
       final url = Uri.parse('${ApiConfig.baseUrl}/api/profile/');
-      
+
       // 2. Gọi API với Header chứa Token
       final response = await http.get(
         url,
@@ -337,6 +344,257 @@ class ApiService {
       }
     } catch (e) {
       print('Lỗi lấy top món ăn: $e');
+      return [];
+    }
+  }
+
+  // API Lấy danh sách danh mục Blog
+  static Future<List<DanhMuc>> fetchBlogCategories() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/categories/');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        List<dynamic> list = json.decode(bodyUtf8);
+        return list.map((e) => DanhMuc.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi lấy danh mục blog: $e");
+      return [];
+    }
+  }
+
+  // API Lấy danh sách bài viết
+  static Future<List<Blog>> fetchBlogs({int? categoryId}) async {
+    String path = '/api/blogs/';
+    if (categoryId != null && categoryId != 0) {
+      path += '?danh_muc=$categoryId';
+    }
+    final url = Uri.parse('${ApiConfig.baseUrl}$path');
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+    Map<String, String> headers = {};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+
+    try {
+      final response = await http.get(url, headers: headers);
+      if (response.statusCode == 200) {
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        List<dynamic> list = json.decode(bodyUtf8);
+        return list.map((e) => Blog.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi lấy bài viết: $e");
+      return [];
+    }
+  }
+
+  // API lấy chi tiết bài viết (tắng view)
+  static Future<Blog?> fetchBlogDetail(int id) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/$id/');
+
+    // --- LẤY TOKEN ---
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+    Map<String, String> headers = {};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+
+    try {
+      final response = await http.get(url, headers: headers); // <--- GỬI HEADER
+      if (response.statusCode == 200) {
+        return Blog.fromJson(json.decode(utf8.decode(response.bodyBytes)));
+      }
+    } catch (e) {
+      print("Lỗi lấy chi tiết blog: $e");
+    }
+    return null;
+  }
+
+  // API lấy danh sách bình luận
+  static Future<List<dynamic>> fetchComments(int blogId) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/$blogId/comments/');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      }
+    } catch (e) {
+      print("Lỗi lấy comment: $e");
+    }
+    return [];
+  }
+
+  // API viết bình luận
+  static Future<bool> postComment(int blogId, String content) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/$blogId/comment/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'noi_dung': content}),
+      );
+      return response.statusCode == 201;
+    } catch (e) {
+      print("Lỗi gửi comment: $e");
+      return false;
+    }
+  }
+
+  // API like bài viết
+  static Future<bool> toggleBlogLike(int blogId) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/$blogId/like/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Lỗi like blog: $e");
+      return false;
+    }
+  }
+
+  // API đăng bài viết mới
+  static Future<bool> createBlog(
+    String title,
+    String content,
+    int categoryId,
+    File? imageFile,
+  ) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/create/');
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return false;
+
+    // Sử dụng MultipartRequest để gửi file
+    var request = http.MultipartRequest('POST', url);
+
+    // Header Authorization
+    request.headers['Authorization'] = 'Bearer $token';
+
+    // Các trường Text
+    request.fields['tieu_de'] = title;
+    request.fields['noi_dung'] = content;
+    request.fields['danh_muc'] = categoryId.toString();
+    String plainText = _stripHtml(content);
+    String shortDesc = plainText.length > 100
+        ? plainText.substring(0, 100) + "..."
+        : plainText;
+    request.fields['mo_ta_ngan'] = shortDesc;
+    // File Ảnh
+    if (imageFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('anh_bia', imageFile.path),
+      );
+    }
+
+    try {
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 201) {
+        return true;
+      } else {
+        print("Lỗi đăng bài: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi exception đăng bài: $e");
+      return false;
+    }
+  }
+
+  // Hàm hỗ trợ lọc chuỗi Html của trường mô tả ngắn
+  static String _stripHtml(String htmlString) {
+    RegExp exp = RegExp(r"<[^>]*>", multiLine: true, caseSensitive: true);
+    return htmlString.replaceAll(exp, '').trim();
+  }
+
+  // Hàm lấy danh sách bài viết của user
+  static Future<List<Blog>> fetchMyBlogs() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/my-blogs/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        List<dynamic> list = json.decode(bodyUtf8);
+        return list.map((e) => Blog.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi lấy blog: $e");
+      return [];
+    }
+  }
+
+  // Hàm xóa bài viết của user
+  static Future<bool> deleteBlog(int blogId) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/$blogId/delete/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.delete(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 204;
+    } catch (e) {
+      print("Lỗi xóa blog: $e");
+      return false;
+    }
+  }
+
+  // Hàm lấy danh sách thông báo
+  static Future<List<ThongBao>> fetchNotifications() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/notifications/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        List<dynamic> list = json.decode(bodyUtf8);
+        return list.map((e) => ThongBao.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi lấy thông báo: $e");
       return [];
     }
   }

@@ -16,7 +16,6 @@ class _ProfilePageState extends State<ProfilePage> {
   // Biến chứa dữ liệu
   String _username = "Đang tải...";
   String _email = "Đang tải...";
-  String _userId = "...";
   String _joinDate = "...";
   
   // Controllers cho việc đổi mật khẩu
@@ -46,7 +45,6 @@ class _ProfilePageState extends State<ProfilePage> {
         _username = profileData['username'] ?? "User";
         _email = profileData['email'] ?? "Chưa cập nhật email";
         // Lấy thêm ID và Ngày tham gia từ API
-        _userId = "#${profileData['id'] ?? '0'}"; 
         _joinDate = _formatDate(profileData['date_joined']);
       });
     }
