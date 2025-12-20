@@ -4,6 +4,9 @@ import '../service/api_service.dart';
 import 'man_hinh_chinh.dart';
 import 'man_hinh_dang_ky.dart';
 
+import 'dart:async';
+
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -29,69 +32,93 @@ class _LoginPageState extends State<LoginPage> {
 
   // --- HÀM XỬ LÝ ĐĂNG NHẬP ---
   Future<void> handleLogin() async {
-    // Bước 1: Kiểm tra nhập liệu
-    if (_usernameController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu"),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
+  if (_usernameController.text.trim().isEmpty ||
+      _passwordController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu"),
+        backgroundColor: Colors.orange,
+      ),
+    );
+    return;
+  }
 
-    // Bật trạng thái loading
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    // Bước 2: Gọi API thông qua ApiService
-    // Hàm này trả về Map (nếu thành công) hoặc null (nếu thất bại)
+  try {
     final result = await ApiService.login(
       _usernameController.text,
       _passwordController.text,
+    ).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        throw TimeoutException("Server không phản hồi");
+      },
     );
 
-    // Tắt trạng thái loading
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    if (!mounted) return;
 
-    // Bước 3: Xử lý kết quả
+    setState(() {
+      _isLoading = false;
+    });
+
     if (result != null) {
-      // --- THÀNH CÔNG ---
-      String accessToken = result['access']; // Lấy token từ server trả về
+      String accessToken = result['access'];
 
-      // Lưu token vào bộ nhớ máy
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_token', accessToken);
 
-      if (mounted) {
-        // Thông báo thành công
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Đăng nhập thành công!"), backgroundColor: Colors.green),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Đăng nhập thành công!"),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-        // Chuyển sang màn hình chính và xóa màn hình login khỏi lịch sử
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
     } else {
-      // --- THẤT BẠI ---
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Đăng nhập thất bại! Sai tài khoản hoặc mật khẩu."),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Sai tài khoản hoặc mật khẩu"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+  on TimeoutException {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Lỗi server, thử lại sau"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+  catch (e) {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Không kết nối được server"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
