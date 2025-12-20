@@ -1,11 +1,11 @@
-class DanhMuc {
+class DanhMucBlog {
   final int id;
   final String ten;
 
-  DanhMuc({required this.id, required this.ten});
+  DanhMucBlog({required this.id, required this.ten});
 
-  factory DanhMuc.fromJson(Map<String, dynamic> json) {
-    return DanhMuc(
+  factory DanhMucBlog.fromJson(Map<String, dynamic> json) {
+    return DanhMucBlog(
       id: json['id'] ?? 0,
       ten: json['ten_danh_muc'] ?? "Khác",
     );

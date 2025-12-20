@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../page/man_hinh_dang_nhap.dart';
 import '../page/man_hinh_ho_so.dart';
 import '../page/man_hinh_list_blog.dart';
+import '../page/man_hinh_lich_su_nau_an.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -118,6 +119,21 @@ class _HomeContentState extends State<HomeContent> {
       });
     }
   }
+
+  // Hàm Helper để chọn Icon và Màu dựa theo tên
+Map<String, dynamic> _getCategoryStyle(String name) {
+  String lowerName = name.toLowerCase();
+  if (lowerName.contains('sáng')) {
+    return {'icon': Icons.wb_twilight, 'color': Colors.orangeAccent};
+  } else if (lowerName.contains('trưa')) {
+    return {'icon': Icons.wb_sunny, 'color': Colors.redAccent};
+  } else if (lowerName.contains('tối')) {
+    return {'icon': Icons.nights_stay, 'color': Colors.indigoAccent};
+  } else {
+    // Style mặc định cho các bữa phụ hoặc bữa mới thêm
+    return {'icon': Icons.local_dining, 'color': Colors.teal};
+  }
+}
 
   // Hàm gọi API lấy thông tin user
   Future<void> _loadUserProfile() async {
@@ -292,7 +308,14 @@ class _HomeContentState extends State<HomeContent> {
                             builder: (context) => const ProfilePage(),
                           ),
                         );
-                      } else if (value == 'logout') {
+                      }else if (value == 'history') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CookingHistoryScreen(),
+                          ),
+                        );
+                      }else if (value == 'logout') {
                         // Xử lý đăng xuất nhanh (nếu muốn)
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.remove('user_token');
@@ -316,6 +339,16 @@ class _HomeContentState extends State<HomeContent> {
                                 Icon(Icons.person, color: Colors.grey),
                                 SizedBox(width: 10),
                                 Text('Thông tin tài khoản'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'history',
+                            child: Row(
+                              children: [
+                                Icon(Icons.history, color: Colors.blue), // Icon đồng hồ
+                                SizedBox(width: 10),
+                                Text('Lịch sử nấu ăn'),
                               ],
                             ),
                           ),
@@ -513,58 +546,49 @@ class _HomeContentState extends State<HomeContent> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildCategoryCard(
-                    "Sáng",
-                    Icons.wb_twilight,
-                    Colors.orangeAccent,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ListMonAn(
-                            loaiMon: 'sang',
-                            title: "Món ăn Sáng",
+              FutureBuilder<List<dynamic>>(
+                future: ApiService.fetchDanhMuc(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Text("Chưa có danh mục nào");
+                  }
+
+                  final categories = snapshot.data!;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: categories.map((cat) {
+                        String tenDanhMuc = cat['ten']; 
+                        var style = _getCategoryStyle(tenDanhMuc);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 15.0, bottom: 5),
+                          child: _buildCategoryCard(
+                            tenDanhMuc,
+                            style['icon'],
+                            style['color'],
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ListMonAn(
+                                    loaiMon: tenDanhMuc,
+                                    title: "Món ăn $tenDanhMuc",
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildCategoryCard(
-                    "Trưa",
-                    Icons.wb_sunny,
-                    Colors.redAccent,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ListMonAn(
-                            loaiMon: 'trua',
-                            title: "Món ăn Trưa",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildCategoryCard(
-                    "Tối",
-                    Icons.nights_stay,
-                    Colors.indigoAccent,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ListMonAn(
-                            loaiMon: 'toi',
-                            title: "Món ăn Tối",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 30),
               // MÓN ĂN NỔI BẬT

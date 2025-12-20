@@ -1,4 +1,5 @@
 import 'dart:convert'; // Dùng để giải mã JSON
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // Thư viện kết nối mạng
 import 'package:smartchef/config/api_config.dart'; // File chứa IP máy
 import '../models/mon_an.dart';
@@ -11,9 +12,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Hàm lấy danh sách món ăn
-  static Future<List<MonAn>> fetchMonAn({String? loai}) async {
-    final String path = loai != null ? '/api/mon-an/$loai/' : '/api/mon-an/';
-    final url = Uri.parse('${ApiConfig.baseUrl}$path');
+static Future<List<MonAn>> fetchMonAn({String? loai}) async {
+    Uri url;
+    
+    // --- SỬA ĐOẠN NÀY ---
+    if (loai != null && loai.isNotEmpty) {
+      String encodedLoai = Uri.encodeComponent(loai);
+      url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/$encodedLoai/');
+    } else {
+      url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/');
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('user_token');
@@ -22,12 +30,13 @@ class ApiService {
       "Content-Type": "application/json; charset=UTF-8",
     };
 
-    // Nếu đã đăng nhập, GỬI KÈM TOKEN để Backend check is_favorite
     if (token != null) {
       headers["Authorization"] = "Bearer $token";
     }
 
     try {
+      print("Calling API: $url"); 
+      
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
@@ -35,11 +44,29 @@ class ApiService {
         List<dynamic> listJson = json.decode(bodyUtf8);
         return listJson.map((json) => MonAn.fromJson(json)).toList();
       } else {
+        print("Lỗi Server trả về: ${response.body}");
         throw Exception("Lỗi tải danh sách: ${response.statusCode}");
       }
     } catch (e) {
       print('Error fetching recipes: $e');
       throw Exception("Không thể kết nối đến máy chủ");
+    }
+}
+
+  // Hàm lấy danh mục món ăn 
+static Future<List<dynamic>> fetchDanhMuc() async {
+        final  url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/categories/');
+    try {
+      final response = await http.get(url);
+      
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      } else {
+        throw Exception('Lỗi tải danh mục: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching categories: $e');
+      return [];
     }
   }
 
@@ -349,14 +376,14 @@ class ApiService {
   }
 
   // API Lấy danh sách danh mục Blog
-  static Future<List<DanhMuc>> fetchBlogCategories() async {
+  static Future<List<DanhMucBlog>> fetchBlogCategories() async {
     final url = Uri.parse('${ApiConfig.baseUrl}/api/blogs/categories/');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         String bodyUtf8 = utf8.decode(response.bodyBytes);
         List<dynamic> list = json.decode(bodyUtf8);
-        return list.map((e) => DanhMuc.fromJson(e)).toList();
+        return list.map((e) => DanhMucBlog.fromJson(e)).toList();
       }
       return [];
     } catch (e) {
@@ -595,6 +622,65 @@ class ApiService {
       return [];
     } catch (e) {
       print("Lỗi lấy thông báo: $e");
+      return [];
+    }
+  }
+
+  // Hàm API Bắt đầu nấu ăn (lưu lịch sử)
+  static Future<bool> startCooking(int monAnId) async {
+    // Giả sử đường dẫn API là /api/mon-an/{id}/start-cooking/
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/$monAnId/start-cooking/');
+    
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      // 200 OK hoặc 201 Created đều tính là thành công
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print("Lỗi bat dau nau an: $e");
+      return false;
+    }
+  }
+
+  // API Lấy lịch sử nấu ăn
+  static Future<List<Map<String, dynamic>>> fetchCookingHistory() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/history/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Giải mã UTF-8
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        List<dynamic> listData = json.decode(bodyUtf8);
+        
+        // Ép kiểu về List Map để UI dễ dùng
+        return List<Map<String, dynamic>>.from(listData);
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi lấy lịch sử: $e");
       return [];
     }
   }
