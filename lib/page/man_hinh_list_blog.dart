@@ -17,7 +17,7 @@ class BlogFeedScreen extends StatefulWidget {
 class _BlogFeedScreenState extends State<BlogFeedScreen> {
   final primaryGreen = const Color(0xFF7CB342);
 
-  List<DanhMuc> _categories = [];
+  List<DanhMucBlog> _categories = [];
   List<Blog> _blogs = [];
   bool _isLoading = true;
   int _selectedCategoryId = 0; // 0 là "Tất cả"
@@ -32,7 +32,7 @@ class _BlogFeedScreenState extends State<BlogFeedScreen> {
   Future<void> _initData() async {
     final cats = await ApiService.fetchBlogCategories();
     // Thêm mục "Tất cả" vào đầu danh sách
-    cats.insert(0, DanhMuc(id: 0, ten: "Tất cả"));
+    cats.insert(0, DanhMucBlog(id: 0, ten: "Tất cả"));
 
     final blogs = await ApiService.fetchBlogs();
 

@@ -120,6 +120,21 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
+  // Hàm Helper để chọn Icon và Màu dựa theo tên
+Map<String, dynamic> _getCategoryStyle(String name) {
+  String lowerName = name.toLowerCase();
+  if (lowerName.contains('sáng')) {
+    return {'icon': Icons.wb_twilight, 'color': Colors.orangeAccent};
+  } else if (lowerName.contains('trưa')) {
+    return {'icon': Icons.wb_sunny, 'color': Colors.redAccent};
+  } else if (lowerName.contains('tối')) {
+    return {'icon': Icons.nights_stay, 'color': Colors.indigoAccent};
+  } else {
+    // Style mặc định cho các bữa phụ hoặc bữa mới thêm
+    return {'icon': Icons.local_dining, 'color': Colors.teal};
+  }
+}
+
   // Hàm gọi API lấy thông tin user
   Future<void> _loadUserProfile() async {
     // Gọi hàm fetchProfile mà chúng ta đã viết trong ApiService
@@ -531,58 +546,49 @@ class _HomeContentState extends State<HomeContent> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildCategoryCard(
-                    "Sáng",
-                    Icons.wb_twilight,
-                    Colors.orangeAccent,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ListMonAn(
-                            loaiMon: 'sang',
-                            title: "Món ăn Sáng",
+              FutureBuilder<List<dynamic>>(
+                future: ApiService.fetchDanhMuc(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Text("Chưa có danh mục nào");
+                  }
+
+                  final categories = snapshot.data!;
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: categories.map((cat) {
+                        String tenDanhMuc = cat['ten']; 
+                        var style = _getCategoryStyle(tenDanhMuc);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 15.0, bottom: 5),
+                          child: _buildCategoryCard(
+                            tenDanhMuc,
+                            style['icon'],
+                            style['color'],
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ListMonAn(
+                                    loaiMon: tenDanhMuc,
+                                    title: "Món ăn $tenDanhMuc",
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildCategoryCard(
-                    "Trưa",
-                    Icons.wb_sunny,
-                    Colors.redAccent,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ListMonAn(
-                            loaiMon: 'trua',
-                            title: "Món ăn Trưa",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildCategoryCard(
-                    "Tối",
-                    Icons.nights_stay,
-                    Colors.indigoAccent,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ListMonAn(
-                            loaiMon: 'toi',
-                            title: "Món ăn Tối",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 30),
               // MÓN ĂN NỔI BẬT

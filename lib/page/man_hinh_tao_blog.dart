@@ -20,7 +20,7 @@ class _CreateBlogScreenState extends State<CreateBlogScreen> {
   final HtmlEditorController _htmlController = HtmlEditorController();
 
   // State variables
-  List<DanhMuc> _categories = [];
+  List<DanhMucBlog> _categories = [];
   int? _selectedCategoryId;
   File? _coverImage;
   bool _isLoading = false;

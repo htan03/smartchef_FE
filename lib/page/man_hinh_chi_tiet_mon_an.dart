@@ -24,20 +24,25 @@ class _ChiTietMonAnState extends State<ChiTietMonAn> {
   @override
   void initState() {
     super.initState();
-    // Setup dữ liệu
-    displayData = widget.monAn ??
+displayData = widget.monAn ??
         MonAn(
           id: 0,
           tenMonAn: 'Đang tải...',
           moTa: '',
-          chiTiet: '',
-          thoiGian: 0,
-          calo: 0,
           hinhAnh: '',
-          loai: '',
-          dsNguyenLieu: [],
+          thoiGian: 0,
+          calo: 0.0,
+          dam: 0.0,
+          beo: 0.0,
+          tinhBot: 0.0,
+          xo: 0.0,
+          loai: [],
+          tags: [],       
+          nguyenLieu: [], 
+          cacBuocNau: [], 
+
+          chiTiet: '',
           isFavorite: false,
-          cacBuocNau: [],
         );
 
     _isFavorite = displayData.isFavorite;
@@ -351,7 +356,7 @@ class _ChiTietMonAnState extends State<ChiTietMonAn> {
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8.0, runSpacing: 8.0,
-                          children: displayData.dsNguyenLieu.map((nl) => Chip(
+                          children: displayData.nguyenLieu.map((nl) => Chip(
                             label: Text(nl),
                             backgroundColor: Colors.white,
                             labelStyle: TextStyle(color: primaryGreen, fontWeight: FontWeight.w500),
