@@ -598,4 +598,63 @@ class ApiService {
       return [];
     }
   }
+
+  // Hàm API Bắt đầu nấu ăn (lưu lịch sử)
+  static Future<bool> startCooking(int monAnId) async {
+    // Giả sử đường dẫn API là /api/mon-an/{id}/start-cooking/
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/$monAnId/start-cooking/');
+    
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      // 200 OK hoặc 201 Created đều tính là thành công
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print("Lỗi bat dau nau an: $e");
+      return false;
+    }
+  }
+
+  // API Lấy lịch sử nấu ăn
+  static Future<List<Map<String, dynamic>>> fetchCookingHistory() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/history/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Giải mã UTF-8
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        List<dynamic> listData = json.decode(bodyUtf8);
+        
+        // Ép kiểu về List Map để UI dễ dùng
+        return List<Map<String, dynamic>>.from(listData);
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi lấy lịch sử: $e");
+      return [];
+    }
+  }
 }

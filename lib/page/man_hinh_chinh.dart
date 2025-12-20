@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../page/man_hinh_dang_nhap.dart';
 import '../page/man_hinh_ho_so.dart';
 import '../page/man_hinh_list_blog.dart';
+import '../page/man_hinh_lich_su_nau_an.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -292,7 +293,14 @@ class _HomeContentState extends State<HomeContent> {
                             builder: (context) => const ProfilePage(),
                           ),
                         );
-                      } else if (value == 'logout') {
+                      }else if (value == 'history') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CookingHistoryScreen(),
+                          ),
+                        );
+                      }else if (value == 'logout') {
                         // Xử lý đăng xuất nhanh (nếu muốn)
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.remove('user_token');
@@ -316,6 +324,16 @@ class _HomeContentState extends State<HomeContent> {
                                 Icon(Icons.person, color: Colors.grey),
                                 SizedBox(width: 10),
                                 Text('Thông tin tài khoản'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'history',
+                            child: Row(
+                              children: [
+                                Icon(Icons.history, color: Colors.blue), // Icon đồng hồ
+                                SizedBox(width: 10),
+                                Text('Lịch sử nấu ăn'),
                               ],
                             ),
                           ),

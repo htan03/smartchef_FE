@@ -39,6 +39,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.6.0
   image_picker: ^1.0.4
+  wakelock_plus: ^1.2.8
 
 dev_dependencies:
   flutter_test:

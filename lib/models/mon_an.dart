@@ -9,6 +9,9 @@ class MonAn {
   final String loai;
   final List<String> dsNguyenLieu;
   final bool isFavorite;
+  
+  // --- THÊM BIẾN MỚI ---
+  final List<String> cacBuocNau; 
 
   MonAn({
     required this.id,
@@ -21,34 +24,37 @@ class MonAn {
     required this.loai,
     required this.dsNguyenLieu,
     this.isFavorite = false,
+    
+    // --- THÊM VÀO CONSTRUCTOR ---
+    required this.cacBuocNau, 
   });
 
   factory MonAn.fromJson(Map<String, dynamic> json) {
     return MonAn(
-      // Ánh xạ từng trường từ JSON vào biến của Dart
-      // Cú pháp: json['tên_cột_trong_database']
-      
-      id: json['maMonAn'] ?? 0, 
+      id: json['maMonAn'] ?? 0,
       tenMonAn: json['tenMonAn'] ?? '',
       moTa: json['moTa'] ?? '',
       chiTiet: json['chiTiet'] ?? '',
-      
-      // Postgre lưu số, nhưng JSON qua mạng có thể hiểu nhầm là String
-      // nên đôi khi cần ép kiểu cho chắc, nhưng ở đây mình để mặc định.
       thoiGian: json['thoiGian'] ?? 0,
       calo: json['calo'] ?? 0,
-      
-      // Xử lý ảnh: Nếu null thì để chuỗi rỗng
       hinhAnh: json['hinhAnh'] ?? '',
-      
       loai: json['loai'] ?? '',
-    
-      // Nếu json['dsNguyenLieu'] có dữ liệu, ta ép nó thành List<String>
-      // Nếu null, ta trả về một list rỗng []
+      
       dsNguyenLieu: json['nguyen_lieu'] != null
-          ? List<String>.from(json['nguyen_lieu']) // Ép kiểu sang List String
+          ? List<String>.from(json['nguyen_lieu'])
           : [],
-          isFavorite: json['is_favorite'] ?? false,
+      
+      isFavorite: json['is_favorite'] ?? false,
+
+      // --- LOGIC TÁCH DÒNG THÀNH LIST ---
+      // Dữ liệu từ Server là 1 đoạn văn bản dài. 
+      // Ta dùng hàm split('\n') để cắt mỗi dòng thành 1 phần tử trong List.
+      cacBuocNau: json['cac_buoc_nau'] != null && json['cac_buoc_nau'].toString().isNotEmpty
+          ? json['cac_buoc_nau'].toString()
+              .split(RegExp(r'\r?\n')) // Cắt chuỗi khi gặp dấu xuống dòng
+              .where((step) => step.trim().isNotEmpty) // Lọc bỏ dòng trống
+              .toList()
+          : [], // Nếu không có dữ liệu thì trả về list rỗng
     );
   }
 }
