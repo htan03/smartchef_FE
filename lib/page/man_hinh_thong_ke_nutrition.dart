@@ -102,10 +102,14 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
                   const SizedBox(height: 30),
 
-                  // 3. Macros (Các chất dinh dưỡng)
-                  const Text(
-                    "Chi tiết Dinh dưỡng",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  // 3. Macros (Các chất dinh dưỡng) - Tiêu đề thay đổi theo mode
+                  Text(
+                    _selectedMode == 'day' 
+                        ? "Chi tiết Dinh dưỡng Hôm nay"
+                        : _selectedMode == 'week'
+                            ? "Tổng Dinh dưỡng 7 Ngày"
+                            : "Tổng Dinh dưỡng 30 Ngày",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 15),
                   _buildMacroBar("Đạm (Protein)", data.protein, Colors.blue),
@@ -236,6 +240,19 @@ class _NutritionScreenState extends State<NutritionScreen> {
       percent = (data.caloNapVao / data.bmrTarget).clamp(0.0, 1.0);
     }
 
+    // Label thay đổi theo mode (ngày/tuần/tháng)
+    String titleText = _selectedMode == 'day'
+        ? "Đã nạp"
+        : _selectedMode == 'week'
+            ? "Tổng tuần"
+            : "Tổng tháng";
+    
+    String targetText = _selectedMode == 'day'
+        ? "/ ${data.bmrTarget} Kcal mục tiêu"
+        : _selectedMode == 'week'
+            ? "/ ${data.bmrTarget} Kcal (7 ngày)"
+            : "/ ${data.bmrTarget} Kcal (30 ngày)";
+
     return Center(
       child: CircularPercentIndicator(
         radius: 110.0,
@@ -246,8 +263,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
         center: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // VIỆT HÓA: Đã nạp
-            const Text("Đã nạp", style: TextStyle(color: Colors.grey, fontSize: 14)),
+            // Tiêu đề thay đổi theo mode
+            Text(titleText, style: const TextStyle(color: Colors.grey, fontSize: 14)),
             const SizedBox(height: 5),
             Text(
               "${data.caloNapVao}",
@@ -257,10 +274,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 color: Colors.black,
               ),
             ),
-            // VIỆT HÓA: Mục tiêu
+            // Mục tiêu thay đổi theo mode
             Text(
-              "/ ${data.bmrTarget} Kcal mục tiêu",
+              targetText,
               style: const TextStyle(color: Colors.grey, fontSize: 12),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
             Container(
@@ -270,7 +288,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                // VIỆT HÓA: Còn lại / Vượt mức
+                // Còn lại / Vượt mức
                 data.caloConLai > 0 ? "Còn lại: ${data.caloConLai}" : "Vượt mức!",
                 style: TextStyle(
                   color: data.caloConLai > 0 ? Colors.green.shade800 : Colors.red.shade800,
@@ -375,12 +393,13 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 text: TextSpan(
                   style: const TextStyle(color: Colors.black),
                   children: [
+                    // hiển thị lượng chất hiện tại và mục tiêu (đơn vị g) có số làm tròn 1 số thập phân sau dấu phẩy
                     TextSpan(
-                      text: "${macro.current}g",
+                      text: "${macro.current.toStringAsFixed(1)}g", // Hiển thị lượng hiện tại với 1 chữ số thập phân
                       style: TextStyle(color: color, fontWeight: FontWeight.bold),
                     ),
                     TextSpan(
-                      text: " / ${macro.target}g",
+                      text: " / ${macro.target.toStringAsFixed(1)}g",
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
                   ],
