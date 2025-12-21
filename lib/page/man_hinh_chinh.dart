@@ -11,6 +11,8 @@ import '../page/man_hinh_dang_nhap.dart';
 import '../page/man_hinh_ho_so.dart';
 import '../page/man_hinh_list_blog.dart';
 import '../page/man_hinh_lich_su_nau_an.dart';
+import '../page/man_hinh_thong_ke_nutrition.dart';
+import '../page/man_hinh_cai_dat_suc_khoe.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -35,10 +37,15 @@ class _HomePageState extends State<HomePage> {
         isFavoriteMode: true,
       ),
       const BlogFeedScreen(),
+      // Màn hình thống kê dinh dưỡng
+      const NutritionScreen(), 
     ];
 
     return Scaffold(
-      body: screens[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: screens,
+      ),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -66,7 +73,12 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.article_outlined),
             activeIcon: Icon(Icons.article),
             label: "Góc Bếp",
-    ),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pie_chart_outline),
+            activeIcon: Icon(Icons.pie_chart),
+            label: "Dinh dưỡng",
+          ),
         ],
       ),
     );
@@ -308,6 +320,13 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                             builder: (context) => const ProfilePage(),
                           ),
                         );
+                      }else if (value == 'health') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HealthSettingsPage(),
+                          ),
+                        );
                       }else if (value == 'history') {
                         Navigator.push(
                           context,
@@ -342,6 +361,18 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                               ],
                             ),
                           ),
+                                      
+                          const PopupMenuItem<String>(
+                            value: 'health',
+                            child: Row(
+                              children: [
+                                Icon(Icons.health_and_safety, color: Colors.green),
+                                SizedBox(width: 10),
+                                Text('Thông tin Sức khỏe'),
+                              ],
+                            ), 
+                          ),
+                          
                           const PopupMenuItem<String>(
                             value: 'history',
                             child: Row(

@@ -274,7 +274,7 @@ class _ProfilePageState extends State<ProfilePage> {
               color: Colors.black87,
               onTap: _showChangePasswordDialog,
             ),
-            
+
             const SizedBox(height: 15),
             
             _buildActionButton(
