@@ -9,6 +9,7 @@ import '../models/thongbao.dart';
 import 'dart:io'; // Dùng để làm việc với File
 import 'package:http_parser/http_parser.dart'; // Dùng để định nghĩa kiểu file khi upload (trên điẹn thoại Android)
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/thong_ke_dinh_duong_nutrition_model.dart';
 
 class ApiService {
   // Hàm lấy danh sách món ăn
@@ -682,6 +683,124 @@ static Future<List<dynamic>> fetchDanhMuc() async {
     } catch (e) {
       print("Lỗi lấy lịch sử: $e");
       return [];
+    }
+  }
+
+  // API lấy thống kê dinh dưỡng
+  static Future<thongKeDinhDuongNutrition?> fetchNutritionStats({String mode = 'day'}) async {
+    // Xây dựng URL với tham số mode (day/week/month)
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/user/nutrition-stats/?mode=$mode');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('user_token');
+
+      // Bắt buộc phải có token mới gọi được API này
+      if (token == null) {
+        print("Chưa đăng nhập, không thể lấy dữ liệu dinh dưỡng.");
+        return null;
+      }
+
+      print("Đang gọi API Nutrition: $url");
+
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Giải mã UTF-8 để hiển thị tiếng Việt không bị lỗi font
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        
+        // Parse JSON sang Model NutritionData
+        return thongKeDinhDuongNutrition.fromJson(json.decode(bodyUtf8));
+      } else {
+        print('Lỗi Server trả về khi lấy thống kê: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Lỗi kết nối API Nutrition: $e');
+      return null;
+    }
+  }
+
+  // API cập nhật thông tin sức khỏe của user
+  static Future<Map<String, dynamic>?> updateHealthProfile({
+    required int namSinh,
+    required String gioiTinh,
+    required double chieuCao,
+    required double canNang,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('user_token');
+
+      if (token == null) return null;
+
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/profile/');
+
+      print("Đang cập nhật profile sức khỏe: $url");
+
+      final response = await http.patch(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "nam_sinh": namSinh,
+          "gioi_tinh": gioiTinh,
+          "chieu_cao": chieuCao,
+          "can_nang": canNang,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        return jsonDecode(bodyUtf8);
+      } else {
+        print('Lỗi cập nhật profile: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Lỗi kết nối khi cập nhật profile: $e');
+      return null;
+    }
+  }
+
+  // API lấy thông tin sức khỏe của user (bao gồm cả UserProfile)
+  static Future<Map<String, dynamic>?> fetchHealthProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('user_token');
+
+      if (token == null) return null;
+
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/profile/');
+
+      print("Đang lấy profile sức khỏe: $url");
+
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        return jsonDecode(bodyUtf8);
+      } else {
+        print('Lỗi lấy profile sức khỏe: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Lỗi kết nối profile sức khỏe: $e');
+      return null;
     }
   }
 }

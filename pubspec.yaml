@@ -31,8 +31,11 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.2
-  flutter_widget_from_html: ^0.10.0
+  flutter_widget_from_html: ^0.17.1
   html_editor_enhanced: ^2.6.0
+  fl_chart: ^1.1.1           # Để vẽ biểu đồ (cho Tab Tuần/Tháng)
+  percent_indicator: ^4.2.3   # Để vẽ vòng tròn Calo và thanh Macros (Rất quan trọng cho UI này)
+  intl: ^0.20.2               # Để format số và ngày tháng
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -50,7 +53,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
