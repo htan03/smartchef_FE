@@ -322,7 +322,6 @@ class _HomeContentState extends State<HomeContent> {
                             builder: (context) => const ProfilePage(),
                           ),
                         );
-                      } else if (value == 'history') {
                       }else if (value == 'health') {
                         Navigator.push(
                           context,

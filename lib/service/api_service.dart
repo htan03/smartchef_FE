@@ -627,11 +627,31 @@ static Future<List<dynamic>> fetchDanhMuc() async {
     }
   }
 
+  // API đánh dấu thông báo là đã đọc 
+  static Future<bool> markNotificationAsRead(int id) async {
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/notifications/$id/read/');
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('user_token');
+  if (token == null) return false;
+  try {
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    return response.statusCode == 200;
+  } catch (e) {
+    print("$e");
+    return false;
+  }
+}
+  
+
   // Hàm API Bắt đầu nấu ăn (lưu lịch sử)
   static Future<bool> startCooking(int monAnId) async {
-    // Giả sử đường dẫn API là /api/mon-an/{id}/start-cooking/
     final url = Uri.parse('${ApiConfig.baseUrl}/api/mon-an/$monAnId/start-cooking/');
-    
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('user_token');
 
@@ -646,7 +666,6 @@ static Future<List<dynamic>> fetchDanhMuc() async {
         },
       );
       
-      // 200 OK hoặc 201 Created đều tính là thành công
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       print("Lỗi bat dau nau an: $e");
@@ -885,7 +904,7 @@ static Future<List<dynamic>> fetchDanhMuc() async {
 
       if (token == null) return null;
 
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/profile/');
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/profile/health/');
 
       print("Đang cập nhật profile sức khỏe: $url");
 
@@ -924,7 +943,7 @@ static Future<List<dynamic>> fetchDanhMuc() async {
 
       if (token == null) return null;
 
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/user/profile/');
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/profile/health/');
 
       print("Đang lấy profile sức khỏe: $url");
 
