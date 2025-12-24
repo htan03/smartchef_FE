@@ -8,15 +8,17 @@ class ListMonAn extends StatefulWidget {
   final String? loaiMon;
   final String title;
   // Biến kiểm tra xem đang ở chế độ nào
-  final bool isFavoriteMode; 
+  final bool isFavoriteMode;
   final List<String>? inputIngredients;
+  final bool isPickingMode;
 
   const ListMonAn({
-    Key? key, 
-    this.loaiMon, 
-    this.title = "Thực đơn", 
+    Key? key,
+    this.loaiMon,
+    this.title = "Thực đơn",
     this.inputIngredients,
     this.isFavoriteMode = false, // Mặc định là false (xem danh sách thường)
+    this.isPickingMode = false,
   }) : super(key: key);
 
   @override
@@ -27,7 +29,7 @@ class _ListMonAnState extends State<ListMonAn> {
   // Không dùng late Future để có thể reload lại danh sách
   List<MonAn> _allRecipes = [];
   List<MonAn> _filteredRecipes = [];
-  
+
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
@@ -54,7 +56,8 @@ class _ListMonAnState extends State<ListMonAn> {
       if (widget.isFavoriteMode) {
         // 1. Chế độ Yêu Thích: Gọi API lấy danh sách của riêng User
         recipes = await ApiService.fetchMyFavorites();
-      } else if (widget.inputIngredients != null && widget.inputIngredients!.isNotEmpty) {
+      } else if (widget.inputIngredients != null &&
+          widget.inputIngredients!.isNotEmpty) {
         // 2. Chế độ Gợi ý: Gọi API search theo nguyên liệu
         recipes = await ApiService.fetchGoiY(widget.inputIngredients!);
       } else {
@@ -136,7 +139,7 @@ class _ListMonAnState extends State<ListMonAn> {
                     ),
                     const SizedBox(width: 20),
                   ],
-                  
+
                   // Tiêu đề
                   Text(
                     widget.title,
@@ -159,9 +162,10 @@ class _ListMonAnState extends State<ListMonAn> {
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: const [
                     BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        offset: Offset(0, 5))
+                      color: Colors.black12,
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
                   ],
                 ),
                 child: TextField(
@@ -172,7 +176,9 @@ class _ListMonAnState extends State<ListMonAn> {
                     border: InputBorder.none,
                     prefixIcon: Icon(Icons.search, color: primaryGreen),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 15),
+                      horizontal: 20,
+                      vertical: 15,
+                    ),
                   ),
                   onChanged: (value) {
                     setState(() {
@@ -189,62 +195,79 @@ class _ListMonAnState extends State<ListMonAn> {
             // 4. DANH SÁCH MÓN ĂN
             Expanded(
               child: _isLoading
-                  ? Center(child: CircularProgressIndicator(color: primaryGreen))
+                  ? Center(
+                      child: CircularProgressIndicator(color: primaryGreen),
+                    )
                   : _hasError
-                      ? Center(child: Text("Lỗi: $_errorMessage")) // Hiện lỗi đơn giản
-                      : _filteredRecipes.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.restaurant,
-                                      size: 80, color: Colors.grey[300]),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    widget.isFavoriteMode 
-                                      ? "Bạn chưa có món yêu thích nào"
-                                      : "Không tìm thấy món ăn nào",
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: () async {
-                                _loadData();
-                              },
-                              child: ListView.builder(
-                                physics: const BouncingScrollPhysics(),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 10),
-                                itemCount: _filteredRecipes.length,
-                                itemBuilder: (context, index) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 15),
-                                    child: MonAnCard(
-                                      monAn: _filteredRecipes[index],
-                                      onTap: () async {
-                                        // Chuyển sang trang chi tiết
-                                        await Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => ChiTietMonAn(
-                                                monAn: _filteredRecipes[index]),
-                                          ),
-                                        );
-                                        
-                                        // LOGIC QUAN TRỌNG: 
-                                        // Khi quay lại từ trang chi tiết, nếu đang ở màn hình Yêu Thích,
-                                        // ta nên load lại danh sách vì có thể user đã bỏ tim món đó rồi.
-                                        if (widget.isFavoriteMode) {
-                                          _loadData();
-                                        }
-                                      },
-                                    ),
+                  ? Center(
+                      child: Text("Lỗi: $_errorMessage"),
+                    ) // Hiện lỗi đơn giản
+                  : _filteredRecipes.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.restaurant,
+                            size: 80,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            widget.isFavoriteMode
+                                ? "Bạn chưa có món yêu thích nào"
+                                : "Không tìm thấy món ăn nào",
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        _loadData();
+                      },
+                      child: ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        itemCount: _filteredRecipes.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 15),
+                            child: MonAnCard(
+                              monAn: _filteredRecipes[index],
+                              onTap: () async {
+                                // Nếu màn hình này đang được mở để chọn món cho Lịch
+                                if (widget.isPickingMode) {
+                                  // Trả món ăn hiện tại về cho màn hình Lịch (MealPlannerScreen)
+                                  Navigator.pop(
+                                    context,
+                                    _filteredRecipes[index],
                                   );
-                                },
-                              ),
+                                  return;
+                                }
+                                // Chuyển sang trang chi tiết
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChiTietMonAn(
+                                      monAn: _filteredRecipes[index],
+                                    ),
+                                  ),
+                                );
+
+                                // Khi quay lại từ trang chi tiết, nếu đang ở màn hình Yêu Thích, load lại danh sách vì có thể user đã bỏ tim món đó rồi.
+                                if (widget.isFavoriteMode) {
+                                  _loadData();
+                                }
+                              },
                             ),
+                          );
+                        },
+                      ),
+                    ),
             ),
           ],
         ),

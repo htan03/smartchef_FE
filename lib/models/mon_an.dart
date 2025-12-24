@@ -38,30 +38,34 @@ class MonAn {
     required this.isFavorite
   });
 
-  factory MonAn.fromJson(Map<String, dynamic> json) {
-    return MonAn(
-      id: json['maMonAn'] ?? 0,
-      tenMonAn: json['tenMonAn'] ?? "Chưa có tên",
-      moTa: json['moTa'] ?? "",
-      hinhAnh: json['hinhAnh'] ?? '',
-      thoiGian: json['thoiGian'] ?? 0,
-      calo: (json['calo'] ?? 0).toDouble(),
-      dam: (json['dam'] ?? 0).toDouble(),
-      beo: (json['beo'] ?? 0).toDouble(),
-      tinhBot: (json['tinh_bot'] ?? 0).toDouble(),
-      xo: (json['xo'] ?? 0).toDouble(),
-      loai: List<String>.from(json['bua_an'] ?? []),
-      tags: List<String>.from(json['tags'] ?? []),
-      nguyenLieu: List<String>.from(json['nguyen_lieu'] ?? []),
+factory MonAn.fromJson(Map<String, dynamic> json) {
+    try {
+      return MonAn(
+        id: json['maMonAn'] ?? json['id'] ?? 0,
+        tenMonAn: (json['tenMonAn'] ?? "Chưa có tên").toString(),
+        moTa: (json['moTa'] ?? "").toString(),
+        hinhAnh: (json['hinhAnh'] ?? "").toString(),
+        thoiGian: int.tryParse(json['thoiGian'].toString()) ?? 0, 
+        calo: double.tryParse(json['calo'].toString()) ?? 0.0,
+        dam: double.tryParse(json['dam'].toString()) ?? 0.0,
+        beo: double.tryParse(json['beo'].toString()) ?? 0.0,
+        tinhBot: double.tryParse(json['tinh_bot'].toString()) ?? 0.0,
+        xo: double.tryParse(json['xo'].toString()) ?? 0.0,
+        loai: (json['loai'] as List?)?.map((e) => e.toString()).toList() ?? [],
+        tags: (json['tags'] as List?)?.map((e) => e.toString()).toList() ?? [],
+        nguyenLieu: (json['nguyen_lieu'] as List?)?.map((e) => e.toString()).toList() ?? [],
+        cacBuocNau: (json['cac_buoc_nau'] != null)
+            ? json['cac_buoc_nau'].toString().split(RegExp(r'\r?\n')).toList()
+            : [],
 
-      cacBuocNau: json['cac_buoc_nau'] != null && json['cac_buoc_nau'].toString().isNotEmpty
-        ? json['cac_buoc_nau'].toString()
-          .split(RegExp(r'\r?\n')) // Cắt chuỗi khi gặp dấu xuống dòng
-          .where((step) => step.trim().isNotEmpty) // Lọc bỏ dòng trống
-          .toList()
-          : [],
-      chiTiet: json['chiTiet'] ?? "",
-      isFavorite: json['is_favorite'] ?? false,
-    );
+        chiTiet: (json['chiTiet'] ?? "").toString(),
+        isFavorite: json['is_favorite'] ?? false,
+      );
+    } catch (e) {
+      print("LỖI CRASH KHI PARSE MÓN: ${json['tenMonAn']}");
+      print("Dữ liệu gốc: $json");
+      print("Chi tiết lỗi: $e");
+      rethrow; 
+    }
   }
 }

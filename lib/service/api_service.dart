@@ -686,6 +686,151 @@ static Future<List<dynamic>> fetchDanhMuc() async {
     }
   }
 
+
+  // Lấy danh sách lịch ăn uống
+  static Future<List<Map<String, dynamic>>> fetchLichAnUong() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/lich-an-uong/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        String bodyUtf8 = utf8.decode(response.bodyBytes);
+        List<dynamic> listData = json.decode(bodyUtf8);
+        return List<Map<String, dynamic>>.from(listData);
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi lấy lịch ăn: $e");
+      return [];
+    }
+  }
+
+  // Thêm món vào lịch
+  static Future<bool> addMonVaoLich({
+    required int monAnId,
+    required int buoiId,
+    required DateTime ngay,
+  }) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/lich-an-uong/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+    if (token == null) return false;
+    String formattedDate = "${ngay.year}-${ngay.month.toString().padLeft(2, '0')}-${ngay.day.toString().padLeft(2, '0')}";
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          "mon_an_id": monAnId,
+          "buoi_id": buoiId,
+          "ngay": formattedDate,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        return true;
+      } else {
+        print("Lỗi thêm lịch: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi kết nối thêm lịch: $e");
+      return false;
+    }
+  }
+
+  // Xóa lịch ăn uống
+  static Future<bool> deleteLich(int lichId) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/lich-an-uong/$lichId/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.delete(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 204) {
+        return true;
+      } else {
+        print("Lỗi xóa lịch: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi kết nối xóa lịch: $e");
+      return false;
+    }
+  }
+
+  // API gọi AI để lập lịch ăn tự động
+  static Future<Map<String, dynamic>> autoScheduleMeals({
+    required String query,
+    required DateTime startDate,
+    int days = 3, 
+  }) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/lich-an-uong/auto-schedule/');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('user_token');
+
+    if (token == null) return {'success': false, 'message': 'Chưa đăng nhập'};
+
+    // Format ngày: YYYY-MM-DD
+    String dateStr = "${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}";
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: json.encode({
+          "query": query,       
+          "start_date": dateStr,
+          "days": days          
+        }),
+      );
+
+      final data = json.decode(utf8.decode(response.bodyBytes));
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'],
+          'data': data['data']
+        };
+      } else {
+        return {
+          'success': false, 
+          'message': data['error'] ?? 'Lỗi server: ${response.statusCode}'
+        };
+      }
+    } catch (e) {
+      print("Lỗi Auto Schedule: $e");
+      return {'success': false, 'message': 'Lỗi kết nối: $e'};
+    }
+  }
+
   // API lấy thống kê dinh dưỡng
   static Future<thongKeDinhDuongNutrition?> fetchNutritionStats({String mode = 'day'}) async {
     // Xây dựng URL với tham số mode (day/week/month)
