@@ -437,16 +437,22 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                 child: TextField(
                   controller: _controller,
                   onSubmitted: (value) => _addIngredient(value),
+                  
+                  // 1. THÊM DÒNG NÀY: Căn giữa nội dung theo chiều dọc
+                  textAlignVertical: TextAlignVertical.center, 
+
                   decoration: InputDecoration(
                     hintText: "Nhập nguyên liệu rồi nhấn Enter...",
                     hintStyle: TextStyle(fontSize: 14, color: Colors.grey[400]),
                     border: InputBorder.none,
                     icon: Icon(Icons.add_circle_outline, color: primaryGreen),
-                    // // Nút xóa nhanh text đang nhập
-                    // suffixIcon: IconButton(
-                    //   icon: const Icon(Icons.clear, color: Colors.grey),
-                    //   onPressed: () => _controller.clear(),
-                    // ),
+                    
+                    // 2. THÊM ĐOẠN NÀY: Loại bỏ padding mặc định để căn chỉnh thủ công
+                    isCollapsed: true, 
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 12, // Tăng giảm số này để chữ lên xuống vừa ý
+                      horizontal: 0,
+                    ),
 
                     // Nút camera chụp ảnh
                     suffixIcon: IconButton(

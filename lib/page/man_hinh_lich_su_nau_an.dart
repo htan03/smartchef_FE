@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Thư viện xử lý ngày tháng
 import '../service/api_service.dart';
 import '../models/mon_an.dart';
 import 'man_hinh_chi_tiet_mon_an.dart';
@@ -22,12 +23,58 @@ class _CookingHistoryScreenState extends State<CookingHistoryScreen> {
   }
 
   Future<void> _loadHistory() async {
+    // Gọi API lấy danh sách
     final data = await ApiService.fetchCookingHistory();
     if (mounted) {
       setState(() {
         _historyList = data;
         _isLoading = false;
       });
+    }
+  }
+
+  // --- HÀM XỬ LÝ NGÀY GIỜ ---
+  // Hàm xử lý ngày giờ chuẩn quốc tế
+  String _formatDateTime(String customString) {
+    try {
+      // 1. Định nghĩa khuôn dạng dữ liệu đầu vào (Server trả về dạng này)
+      // Ví dụ input: "17:48 - 22/12/2025"
+      DateFormat format = DateFormat('HH:mm - dd/MM/yyyy');
+      
+      // 2. Parse chuỗi thành DateTime
+      DateTime rawDate = format.parse(customString);
+
+      // 3. QUAN TRỌNG: Ép buộc Flutter hiểu đây là giờ UTC (Giờ gốc)
+      // Vì rawDate đang bị hiểu nhầm là giờ Local, ta phải tạo lại object UTC
+      DateTime utcDate = DateTime.utc(
+        rawDate.year, 
+        rawDate.month, 
+        rawDate.day, 
+        rawDate.hour, 
+        rawDate.minute
+      );
+
+      // 4. Chuyển từ UTC sang giờ Local của điện thoại
+      // (Nếu điện thoại ở VN nó tự +7, ở Nhật tự +9...)
+      DateTime deviceTime = utcDate.toLocal();
+
+      // 5. Format lại để hiển thị
+      return format.format(deviceTime);
+    } catch (e) {
+      // Dự phòng: Nếu server trả về dạng chuẩn ISO (2025-12-22T17:48:00Z)
+      try {
+         DateTime utcDate = DateTime.parse(customString);
+         // Nếu chuỗi không có chữ 'Z' hoặc múi giờ, ta ép nó là UTC
+         if (!customString.endsWith('Z') && !customString.contains('+')) {
+            utcDate = DateTime.utc(
+                utcDate.year, utcDate.month, utcDate.day, 
+                utcDate.hour, utcDate.minute
+            );
+         }
+         return DateFormat('HH:mm - dd/MM/yyyy').format(utcDate.toLocal());
+      } catch (_) {
+         return customString; // Hết cách thì trả về nguyên gốc
+      }
     }
   }
 
@@ -69,10 +116,15 @@ class _CookingHistoryScreenState extends State<CookingHistoryScreen> {
                   itemCount: _historyList.length,
                   itemBuilder: (context, index) {
                     final item = _historyList[index];
-                    final monAnJson = item['mon_an'];
-                    final thoiGian = item['ngay_nau'];
                     
-                    // Convert JSON món ăn thành Object để truyền vào trang chi tiết
+                    // Lấy dữ liệu thô
+                    final monAnJson = item['mon_an'];
+                    final ngayNauTho = item['ngay_nau']; // Chuỗi gốc từ server
+                    
+                    // --- ÁP DỤNG HÀM SỬA LỖI GIỜ TẠI ĐÂY ---
+                    final thoiGianHienThi = _formatDateTime(ngayNauTho); 
+                    
+                    // Convert JSON món ăn thành Object
                     final monAnObj = MonAn.fromJson(monAnJson);
 
                     return GestureDetector(
@@ -118,7 +170,7 @@ class _CookingHistoryScreenState extends State<CookingHistoryScreen> {
                             ),
                             const SizedBox(width: 15),
                             
-                            // Thông tin
+                            // Thông tin chi tiết
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,7 +191,7 @@ class _CookingHistoryScreenState extends State<CookingHistoryScreen> {
                                       Icon(Icons.access_time, size: 14, color: primaryGreen),
                                       const SizedBox(width: 5),
                                       Text(
-                                        thoiGian,
+                                        thoiGianHienThi, // Sử dụng giờ đã được +7
                                         style: TextStyle(color: Colors.grey[600], fontSize: 13),
                                       ),
                                     ],
