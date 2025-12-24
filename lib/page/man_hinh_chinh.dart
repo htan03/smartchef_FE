@@ -11,6 +11,7 @@ import '../page/man_hinh_dang_nhap.dart';
 import '../page/man_hinh_ho_so.dart';
 import '../page/man_hinh_list_blog.dart';
 import '../page/man_hinh_lich_su_nau_an.dart';
+import '../page/man_hinh_lap_lich_an_uong.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -66,7 +67,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.article_outlined),
             activeIcon: Icon(Icons.article),
             label: "Góc Bếp",
-    ),
+          ),
         ],
       ),
     );
@@ -89,7 +90,7 @@ class _HomeContentState extends State<HomeContent> {
 
   // 1. Biến lưu tên người dùng, mặc định là "User"
   String _username = "User";
-    //Hàm lấy ngày giờ (lời chào)
+  //Hàm lấy ngày giờ (lời chào)
   String _getGreeting() {
     var hour = DateTime.now().hour;
     if (hour >= 5 && hour < 11) {
@@ -102,6 +103,7 @@ class _HomeContentState extends State<HomeContent> {
       return "Chào buổi tối,";
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -121,19 +123,19 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   // Hàm Helper để chọn Icon và Màu dựa theo tên
-Map<String, dynamic> _getCategoryStyle(String name) {
-  String lowerName = name.toLowerCase();
-  if (lowerName.contains('sáng')) {
-    return {'icon': Icons.wb_twilight, 'color': Colors.orangeAccent};
-  } else if (lowerName.contains('trưa')) {
-    return {'icon': Icons.wb_sunny, 'color': Colors.redAccent};
-  } else if (lowerName.contains('tối')) {
-    return {'icon': Icons.nights_stay, 'color': Colors.indigoAccent};
-  } else {
-    // Style mặc định cho các bữa phụ hoặc bữa mới thêm
-    return {'icon': Icons.local_dining, 'color': Colors.teal};
+  Map<String, dynamic> _getCategoryStyle(String name) {
+    String lowerName = name.toLowerCase();
+    if (lowerName.contains('sáng')) {
+      return {'icon': Icons.wb_twilight, 'color': Colors.orangeAccent};
+    } else if (lowerName.contains('trưa')) {
+      return {'icon': Icons.wb_sunny, 'color': Colors.redAccent};
+    } else if (lowerName.contains('tối')) {
+      return {'icon': Icons.nights_stay, 'color': Colors.indigoAccent};
+    } else {
+      // Style mặc định cho các bữa phụ hoặc bữa mới thêm
+      return {'icon': Icons.local_dining, 'color': Colors.teal};
+    }
   }
-}
 
   // Hàm gọi API lấy thông tin user
   Future<void> _loadUserProfile() async {
@@ -308,14 +310,14 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                             builder: (context) => const ProfilePage(),
                           ),
                         );
-                      }else if (value == 'history') {
+                      } else if (value == 'history') {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const CookingHistoryScreen(),
                           ),
                         );
-                      }else if (value == 'logout') {
+                      } else if (value == 'logout') {
                         // Xử lý đăng xuất nhanh (nếu muốn)
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.remove('user_token');
@@ -346,7 +348,10 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                             value: 'history',
                             child: Row(
                               children: [
-                                Icon(Icons.history, color: Colors.blue), // Icon đồng hồ
+                                Icon(
+                                  Icons.history,
+                                  color: Colors.blue,
+                                ), // Icon đồng hồ
                                 SizedBox(width: 10),
                                 Text('Lịch sử nấu ăn'),
                               ],
@@ -463,9 +468,7 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                         );
                       }).toList(),
                     ),
-
               const SizedBox(height: 30),
-
               // 5. BANNER GỢI Ý
               Container(
                 width: double.infinity,
@@ -520,7 +523,6 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                                   ),
                                 ),
                               );
-                              
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
@@ -537,6 +539,8 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                   ],
                 ),
               ),
+              const SizedBox(height: 10),
+              _buildMealPlanBanner(),
 
               const SizedBox(height: 30),
 
@@ -552,7 +556,9 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                  if (snapshot.hasError ||
+                      !snapshot.hasData ||
+                      snapshot.data!.isEmpty) {
                     return const Text("Chưa có danh mục nào");
                   }
 
@@ -563,11 +569,14 @@ Map<String, dynamic> _getCategoryStyle(String name) {
                     physics: const BouncingScrollPhysics(),
                     child: Row(
                       children: categories.map((cat) {
-                        String tenDanhMuc = cat['ten']; 
+                        String tenDanhMuc = cat['ten'];
                         var style = _getCategoryStyle(tenDanhMuc);
 
                         return Padding(
-                          padding: const EdgeInsets.only(right: 15.0, bottom: 5),
+                          padding: const EdgeInsets.only(
+                            right: 15.0,
+                            bottom: 5,
+                          ),
                           child: _buildCategoryCard(
                             tenDanhMuc,
                             style['icon'],
@@ -807,6 +816,70 @@ Map<String, dynamic> _getCategoryStyle(String name) {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Widget banner nhắc nhở lập lịch
+  Widget _buildMealPlanBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50, // Màu nền xanh nhạt dịu mắt
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          // Icon lịch
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.calendar_month, color: Colors.green),
+          ),
+          const SizedBox(width: 15),
+
+          // Text và Nút
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Kế hoạch ăn uống?",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Lên thực đơn ngay!",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+
+          // Nút mũi tên chuyển trang
+          ElevatedButton(
+            onPressed: () {
+              // Chuyển sang màn hình Lịch Ăn
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MealPlannerScreen(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            ),
+            child: const Text("Đi tới", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
