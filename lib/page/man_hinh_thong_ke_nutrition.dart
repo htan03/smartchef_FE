@@ -207,6 +207,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   Widget _buildTabItem(String title, String mode) {
     bool isSelected = _selectedMode == mode;
+  
     return Expanded(
       child: GestureDetector(
         onTap: () => _onTabChanged(mode),
