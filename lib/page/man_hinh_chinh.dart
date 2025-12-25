@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:diacritic/diacritic.dart';
 import 'package:smartchef/page/man_hinh_chi_tiet_mon_an.dart';
 import '../page/man_hinh_list_mon_an.dart';
 import 'package:image_picker/image_picker.dart'; // Thư viện chọn ảnh đã thêm trong  file AndroiManifest.xml
@@ -166,21 +167,46 @@ class _HomeContentState extends State<HomeContent> {
   final ImagePicker _picker = ImagePicker(); // thêm công cụ chụp ảnh
   File? _imageFile; // Lưu file ảnh đã chụp
 
-  // Hàm thêm nguyên liệu
+  // Hàm thêm nguyên liệu - HỖ TRỢ TÁCH DẤU PHẨY VÀ LOẠI BỎ TRÙNG LẶP
   void _addIngredient(String value) {
-    if (value.trim().isNotEmpty) {
-      setState(() {
-        _selectedIngredients.add(value.trim());
-        _controller.clear();
-      });
-    }
-  }
-
-  void _removeIngredient(String value) {
+    // Bỏ qua nếu chuỗi rỗng
+    if (value.trim().isEmpty) return;
+    
     setState(() {
-      _selectedIngredients.remove(value);
+      // BƯỚC 1: TÁCH NGUYÊN LIỆU BẰNG DẤU PHẨY
+      List<String> danhSachNguyenLieu = value.split(',')
+          .map((nguyenLieu) => nguyenLieu.trim())  // Loại bỏ khoảng trắng đầu/cuối
+          .where((nguyenLieu) => nguyenLieu.isNotEmpty)  // Loại bỏ chuỗi rỗng
+          .toList();
+      
+      // BƯỚC 2: THÊM TỪNG NGUYÊN LIỆU (KIỂM TRA TRÙNG LẶP)
+      for (String nguyenLieu in danhSachNguyenLieu) {
+        // Kiểm tra xem nguyên liệu đã tồn tại chưa (không phân biệt hoa thường)
+        bool daTonTai = _selectedIngredients.any(
+          (nguyenLieuCu) => nguyenLieuCu.toLowerCase() == nguyenLieu.toLowerCase()
+        );
+        
+        if (!daTonTai) {
+          // Thêm nguyên liệu mới
+          _selectedIngredients.add(nguyenLieu);
+          print(" Đã thêm: $nguyenLieu");
+        } else {
+          // Bỏ qua nguyên liệu trùng
+          print("Bỏ qua (trùng lặp): $nguyenLieu");
+        }
+      }
+      
+      // BƯỚC 3: XÓA NỘI DUNG Ô NHẬP
+      _controller.clear();
     });
   }
+
+// Hàm xóa nguyên liệu
+void _removeIngredient(String value) {
+  setState(() {
+    _selectedIngredients.remove(value);
+  });
+}
 
   // Hàm mở camera và chụp ảnh nguyên liệu
   Future<void> _chupAnhNguyenLieu() async {
