@@ -93,22 +93,41 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       ),
                       onTap: () {
-                        // Chuyển tới bài viết
-                        if (noti.baiVietId != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => BlogDetailScreen(
-                                blogId: noti.baiVietId!,
-                                title: "Chi tiết bài viết",
-                              ),
-                            ),
-                          );
-                        }
+                        _handleNotificationClick(noti, index);
                       },
                     );
                   },
                 ),
     );
   }
+  void _handleNotificationClick(ThongBao noti, int index) async {
+  // Nếu chưa xem thì gọi API đánh dấu đã xem
+  if (!noti.daXem) {
+    ApiService.markNotificationAsRead(noti.id);
+    setState(() {
+      _notifications[index] = ThongBao(
+        id: noti.id,
+        tenNguoiGui: noti.tenNguoiGui,
+        loai: noti.loai,
+        noiDung: noti.noiDung,
+        baiVietId: noti.baiVietId,
+        daXem: true, // <--- Đổi thành true
+        ngayTao: noti.ngayTao,
+      );
+    });
+  }
+
+  // Chuyển màn hình
+  if (noti.baiVietId != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlogDetailScreen(
+          blogId: noti.baiVietId!,
+          title: "Chi tiết bài viết",
+        ),
+      ),
+    );
+  }
+}
 }
