@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
-import '../models/danh_muc.dart';
+import '../models/danh_muc_blog.dart';
 import '../../service/api_service.dart';
 
 class CreateBlogScreen extends StatefulWidget {

@@ -9,9 +9,9 @@ class thongKeDinhDuongNutrition {
   final String message;
   final String mode;
   final List<FoodLogItem> foodLogs;
-  final List<ChartItem> chartData;
+  final List<ChartItem> chartData; // Khởi tạo đối tượng dữ liệu biểu đồ tuần/tháng
 
-  // Constructor chính để khởi tạo đối tượng
+  // Constructor chính để khởi tạo đối tượng 
   thongKeDinhDuongNutrition({
     required this.bmrTarget,
     required this.caloNapVao,

@@ -37,6 +37,7 @@ dependencies:
   intl: ^0.18.0
   fl_chart: ^1.1.1           # Để vẽ biểu đồ (cho Tab Tuần/Tháng)
   percent_indicator: ^4.2.3   # Để vẽ vòng tròn Calo và thanh Macros (Rất quan trọng cho UI này)
+  diacritic: ^0.1.5 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
