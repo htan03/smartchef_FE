@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // Thư viện kết nối mạng
 import 'package:smartchef/config/api_config.dart'; // File chứa IP máy
 import '../models/mon_an.dart';
-import '../models/danh_muc.dart';
+import '../models/danh_muc_blog.dart';
 import '../models/blog.dart';
 import '../models/thongbao.dart';
 import 'dart:io'; // Dùng để làm việc với File
