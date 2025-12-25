@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../models/thong_ke_dinh_duong_nutrition_model.dart';
 import '../service/api_service.dart';
 
+// Màn hình thống kê dinh dưỡng
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
 
@@ -11,8 +12,9 @@ class NutritionScreen extends StatefulWidget {
   State<NutritionScreen> createState() => _NutritionScreenState();
 }
 
+// Trạng thái của màn hình
 class _NutritionScreenState extends State<NutritionScreen> {
-  late Future<thongKeDinhDuongNutrition?> _nutritionFuture;
+  late Future<thongKeDinhDuongNutrition?> _nutritionFuture; //gọi API service để lấy dữ liệu
   String _selectedMode = 'day'; 
 
   @override
@@ -36,6 +38,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     }
   }
 
+  // Widget xây dựng giao diện
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,13 +105,13 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
                   const SizedBox(height: 30),
 
-                  // 3. Macros (Các chất dinh dưỡng) - Tiêu đề thay đổi theo mode
+                  // 3. Macros (Các chất dinh dưỡng), nó thay đổi theo mode ngày/tuần/tháng
                   Text(
                     _selectedMode == 'day' 
-                        ? "Chi tiết Dinh dưỡng Hôm nay"
+                        ? "Chi tiết dinh dưỡng hôm nay (${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year})"
                         : _selectedMode == 'week'
-                            ? "Tổng Dinh dưỡng 7 Ngày"
-                            : "Tổng Dinh dưỡng 30 Ngày",
+                            ? "Tổng dinh dưỡng tuần này"
+                            : "Tổng Dinh dưỡng tháng (${DateTime.now().month}/${DateTime.now().year})",
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 15),
@@ -188,7 +191,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
   }
 
  // Widget xây dựng các tab chọn thời gian
-
   Widget _buildTabs() {
     return Container(
       decoration: BoxDecoration(
@@ -205,6 +207,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
+  // Widget xây dựng từng tab
   Widget _buildTabItem(String title, String mode) {
     bool isSelected = _selectedMode == mode;
   
@@ -235,6 +238,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
+  // Widget xây dựng vòng tròn Calo
   Widget _buildCalorieCircle(thongKeDinhDuongNutrition data) {
     double percent = 0.0;
     if (data.bmrTarget > 0) {
@@ -307,6 +311,43 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
+  // HÀM MỚI: Xử lý tạo cột biểu đồ (có hỗ trợ tô đen)
+  BarChartGroupData _taoCotBieuDo(int viTri, dynamic calo) {
+    // Nếu calo = null thì tô màu xám (ngày chưa đăng ký)
+    if (calo == null) {
+      return BarChartGroupData(
+        x: viTri,
+        barRods: [
+          BarChartRodData(
+            toY: 100, // Chiều cao nhỏ để hiển thị cột xám
+            color: Colors.grey.shade300, // Màu xám nhạt
+            width: 16,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ],
+      );
+    }
+
+    // Calo có giá trị thì tô màu xanh bình thường
+    return BarChartGroupData(
+      x: viTri,
+      barRods: [
+        BarChartRodData(
+          toY: calo.toDouble(),
+          color: const Color(0xFF7CB342),
+          width: 16,
+          borderRadius: BorderRadius.circular(4),
+          backDrawRodData: BackgroundBarChartRodData(
+            show: true,
+            toY: 3000, 
+            color: Colors.grey.shade100,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Widget xây dựng biểu đồ cột tuần/tháng
   Widget _buildWeeklyChart(List<ChartItem> chartData) {
     if (chartData.isEmpty) {
       return Container(
@@ -330,15 +371,16 @@ class _NutritionScreenState extends State<NutritionScreen> {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  int index = value.toInt();
-                  if (index >= 0 && index < chartData.length) {
-                    if (chartData.length > 10 && index % 4 != 0) {
-                      return const SizedBox.shrink(); // Ẩn bớt nhãn nếu quá dày
+                  int chiSo = value.toInt();
+                  if (chiSo >= 0 && chiSo < chartData.length) {
+                    // Nếu có quá nhiều cột (>10), chỉ hiển thị một số nhãn
+                    if (chartData.length > 10 && chiSo % 4 != 0) {
+                      return const SizedBox.shrink();
                     }
                     return Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
-                        chartData[index].ngay,
+                        chartData[chiSo].ngay,
                         style: const TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                     );
@@ -349,29 +391,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
             ),
           ),
           borderData: FlBorderData(show: false),
-          barGroups: chartData.asMap().entries.map((e) {
-            return BarChartGroupData(
-              x: e.key,
-              barRods: [
-                BarChartRodData(
-                  toY: e.value.calo.toDouble(),
-                  color: const Color(0xFF7CB342),
-                  width: chartData.length > 10 ? 8 : 16,
-                  borderRadius: BorderRadius.circular(4),
-                  backDrawRodData: BackgroundBarChartRodData(
-                    show: true,
-                    toY: 3000, 
-                    color: Colors.grey.shade100,
-                  ),
-                ),
-              ],
-            );
+          barGroups:chartData.asMap().entries.map((entry) {
+            return _taoCotBieuDo(entry.key, entry.value.calo);
           }).toList(),
         ),
       ),
     );
   }
 
+  // Widget xây dựng thanh tiến độ cho từng chất dinh dưỡng
   Widget _buildMacroBar(String label, MacroInfo macro, Color color) {
     double percent = 0.0;
     if (macro.target > 0) {
@@ -424,6 +452,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
+  // Widget xây dựng từng mục trong nhật ký ăn uống
   Widget _buildFoodItem(FoodLogItem item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
