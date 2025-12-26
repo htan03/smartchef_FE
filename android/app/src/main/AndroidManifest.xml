@@ -5,6 +5,8 @@
 <!-- THÊM 2 DÒNG NÀY -->
 <uses-permission android:name="android.permission.CAMERA"/>
 <uses-feature android:name="android.hardware.camera" android:required="false"/>
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
         android:label="smartchef"

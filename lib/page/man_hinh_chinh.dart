@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:diacritic/diacritic.dart';
 import 'package:smartchef/page/man_hinh_chi_tiet_mon_an.dart';
 import '../page/man_hinh_list_mon_an.dart';
 import 'package:image_picker/image_picker.dart'; // Thư viện chọn ảnh đã thêm trong  file AndroiManifest.xml
@@ -40,14 +39,11 @@ class _HomePageState extends State<HomePage> {
       ),
       const BlogFeedScreen(),
       // Màn hình thống kê dinh dưỡng
-      const NutritionScreen(), 
+      const NutritionScreen(),
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: screens),
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -171,21 +167,25 @@ class _HomeContentState extends State<HomeContent> {
   void _addIngredient(String value) {
     // Bỏ qua nếu chuỗi rỗng
     if (value.trim().isEmpty) return;
-    
+
     setState(() {
       // BƯỚC 1: TÁCH NGUYÊN LIỆU BẰNG DẤU PHẨY
-      List<String> danhSachNguyenLieu = value.split(',')
-          .map((nguyenLieu) => nguyenLieu.trim())  // Loại bỏ khoảng trắng đầu/cuối
-          .where((nguyenLieu) => nguyenLieu.isNotEmpty)  // Loại bỏ chuỗi rỗng
+      List<String> danhSachNguyenLieu = value
+          .split(',')
+          .map(
+            (nguyenLieu) => nguyenLieu.trim(),
+          ) // Loại bỏ khoảng trắng đầu/cuối
+          .where((nguyenLieu) => nguyenLieu.isNotEmpty) // Loại bỏ chuỗi rỗng
           .toList();
-      
+
       // BƯỚC 2: THÊM TỪNG NGUYÊN LIỆU (KIỂM TRA TRÙNG LẶP)
       for (String nguyenLieu in danhSachNguyenLieu) {
         // Kiểm tra xem nguyên liệu đã tồn tại chưa (không phân biệt hoa thường)
         bool daTonTai = _selectedIngredients.any(
-          (nguyenLieuCu) => nguyenLieuCu.toLowerCase() == nguyenLieu.toLowerCase()
+          (nguyenLieuCu) =>
+              nguyenLieuCu.toLowerCase() == nguyenLieu.toLowerCase(),
         );
-        
+
         if (!daTonTai) {
           // Thêm nguyên liệu mới
           _selectedIngredients.add(nguyenLieu);
@@ -195,55 +195,50 @@ class _HomeContentState extends State<HomeContent> {
           print("Bỏ qua (trùng lặp): $nguyenLieu");
         }
       }
-      
+
       // BƯỚC 3: XÓA NỘI DUNG Ô NHẬP
       _controller.clear();
     });
   }
 
-// Hàm xóa nguyên liệu
-void _removeIngredient(String value) {
-  setState(() {
-    _selectedIngredients.remove(value);
-  });
-}
+  // Hàm xóa nguyên liệu
+  void _removeIngredient(String value) {
+    setState(() {
+      _selectedIngredients.remove(value);
+    });
+  }
 
   // Hàm mở camera và chụp ảnh nguyên liệu
-  Future<void> _chupAnhNguyenLieu() async {
-    print("Bắt đầu chụp ảnh nguyên liệu...");
+  Future<void> _xuLyAnhNguyenLieu(ImageSource source) async {
     try {
-      // Mở camera để chụp ảnh
+      // Chọn ảnh dựa trên nguồn (Camera hoặc Gallery)
       final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
+        source: source,
         maxWidth: 1024,
         imageQuality: 85,
       );
 
-      // Kiểm tra user có chụp ảnh không
+      // Kiểm tra user có chọn ảnh không
       if (photo != null) {
         setState(() {
           _imageFile = File(photo.path);
         });
 
-        print("Đang gửi ảnh lên server...");
+        if (!mounted) return; // Kiểm tra widget còn tồn tại không trước khi show dialog
 
         // Hiển thị loading
         LoadingDialog.show(context, message: "Đang phân tích nguyên liệu...");
 
-        // GỌI API CHỈ PHÂN TÍCH NGUYÊN LIỆU (KHÔNG LẤY MÓN)
+        // GỌI API PHÂN TÍCH
         var result = await ApiService.phanTichNguyenLieu(_imageFile!);
 
         // Ẩn loading
-        LoadingDialog.hide(context);
+        if (mounted) LoadingDialog.hide(context);
 
         // Kiểm tra kết quả
         if (result['success']) {
           List nguyen_lieu = result['nguyen_lieu'] ?? [];
           int so_nguyen_lieu_moi = result['so_nguyen_lieu_moi'] ?? 0;
-
-          print(
-            "Phân tích thành công! Tìm thấy ${nguyen_lieu.length} nguyên liệu",
-          );
 
           // THÊM NGUYÊN LIỆU VÀO DANH SÁCH CHIPS
           setState(() {
@@ -259,8 +254,7 @@ void _removeIngredient(String value) {
           // Hiển thị thông báo
           String message = "Đã thêm ${nguyen_lieu.length} nguyên liệu!";
           if (so_nguyen_lieu_moi > 0) {
-            message +=
-                "\n$so_nguyen_lieu_moi nguyên liệu mới đã được lưu vào hệ thống.";
+            message += "\n$so_nguyen_lieu_moi nguyên liệu mới đã được lưu.";
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -272,7 +266,6 @@ void _removeIngredient(String value) {
           );
         } else {
           // Thất bại
-          print("Phân tích thất bại: ${result['message']}");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['message'] ?? 'Phân tích thất bại'),
@@ -280,13 +273,11 @@ void _removeIngredient(String value) {
             ),
           );
         }
-      } else {
-        print("User đã hủy chụp ảnh");
-      }
+      } 
     } catch (e) {
       // Lỗi
       try {
-        LoadingDialog.hide(context);
+         if (mounted) LoadingDialog.hide(context);
       } catch (_) {}
 
       print("Lỗi: $e");
@@ -294,6 +285,40 @@ void _removeIngredient(String value) {
         SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
       );
     }
+  }
+
+  // Hàm hiển thị Menu chọn nguồn ảnh
+  void _showImageSourceOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                title: const Text('Chụp ảnh mới'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _xuLyAnhNguyenLieu(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.green),
+                title: const Text('Chọn từ thư viện'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _xuLyAnhNguyenLieu(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -348,14 +373,14 @@ void _removeIngredient(String value) {
                             builder: (context) => const ProfilePage(),
                           ),
                         );
-                      }else if (value == 'health') {
+                      } else if (value == 'health') {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const HealthSettingsPage(),
                           ),
                         );
-                      }else if (value == 'history') {
+                      } else if (value == 'history') {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -389,18 +414,21 @@ void _removeIngredient(String value) {
                               ],
                             ),
                           ),
-                                      
+
                           const PopupMenuItem<String>(
                             value: 'health',
                             child: Row(
                               children: [
-                                Icon(Icons.health_and_safety, color: Colors.green),
+                                Icon(
+                                  Icons.health_and_safety,
+                                  color: Colors.green,
+                                ),
                                 SizedBox(width: 10),
                                 Text('Thông tin Sức khỏe'),
                               ],
-                            ), 
+                            ),
                           ),
-                          
+
                           const PopupMenuItem<String>(
                             value: 'history',
                             child: Row(
@@ -468,18 +496,18 @@ void _removeIngredient(String value) {
                 child: TextField(
                   controller: _controller,
                   onSubmitted: (value) => _addIngredient(value),
-                  
+
                   // 1. THÊM DÒNG NÀY: Căn giữa nội dung theo chiều dọc
-                  textAlignVertical: TextAlignVertical.center, 
+                  textAlignVertical: TextAlignVertical.center,
 
                   decoration: InputDecoration(
                     hintText: "Nhập nguyên liệu rồi nhấn Enter...",
                     hintStyle: TextStyle(fontSize: 14, color: Colors.grey[400]),
                     border: InputBorder.none,
                     icon: Icon(Icons.add_circle_outline, color: primaryGreen),
-                    
+
                     // 2. THÊM ĐOẠN NÀY: Loại bỏ padding mặc định để căn chỉnh thủ công
-                    isCollapsed: true, 
+                    isCollapsed: true,
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 12, // Tăng giảm số này để chữ lên xuống vừa ý
                       horizontal: 0,
@@ -488,7 +516,8 @@ void _removeIngredient(String value) {
                     // Nút camera chụp ảnh
                     suffixIcon: IconButton(
                       icon: Icon(Icons.camera_alt, color: primaryGreen),
-                      onPressed: () => _chupAnhNguyenLieu(),
+                      // SỬA Ở ĐÂY: Gọi hàm hiển thị menu chọn
+                      onPressed: () => _showImageSourceOptions(),
                     ),
                   ),
                 ),
